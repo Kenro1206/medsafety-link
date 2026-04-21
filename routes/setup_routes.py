@@ -182,12 +182,16 @@ def register_setup_routes(app):
 
         try:
             mode = get_system_mode()
+
+　　　　　　　s = normalize_settings()
+
             return render_template(
                 "setup_result.html",
                 title="Google接続テスト",
                 success=True,
                 result_text=f"Google接続成功。system_mode の現在値: {mode}",
                 back_url="/setup"
+                settings=s
             )
         except Exception as e:
             return render_template(
