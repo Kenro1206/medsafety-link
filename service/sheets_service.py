@@ -12,10 +12,23 @@ SYSTEM_MODE_RANGE = "system_mode!A:A"
 
 def get_sheets_service():
     s = load_settings()
-    creds = Credentials.from_service_account_file(
-        s["google"]["service_account_file"],
+import os
+import json
+from google.oauth2.service_account import Credentials
+
+def get_sheets_service():
+    json_str = os.getenv("GOOGLE_SERVICE_JSON", "").strip()
+
+    if not json_str:
+        raise ValueError("GOOGLE_SERVICE_JSON が未設定です")
+
+    info = json.loads(json_str)
+
+    creds = Credentials.from_service_account_info(
+        info,
         scopes=SCOPES
     )
+
     return build("sheets", "v4", credentials=creds)
 
 
