@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>MedSafety Link - {{ title }}</title>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+      margin: 20px;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .logo {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: #2F6FE4;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .header-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2F6FE4;
+    }
+
+    .header-subtitle {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .menu {
+      margin-bottom: 18px;
+      font-size: 14px;
+    }
+
+    .menu a {
+      color: #2F6FE4;
+      text-decoration: none;
+      margin-right: 6px;
+    }
+
+    .menu a:hover {
+      text-decoration: underline;
+    }
+
+    .card {
+      background: white;
+      padding: 16px;
+      border-radius: 10px;
+      max-width: 1200px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    input, textarea, button, select {
+      padding: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #2F6FE4;
+      box-shadow: 0 0 0 2px rgba(47,111,228,0.15);
+    }
+
+    button {
+      background: #2F6FE4;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 9px 16px;
+    }
+
+    button:hover {
+      background: #1E4FA8;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #fafafa;
+    }
+
+    table tr:hover {
+      background: #f9fbff;
+    }
+
+    .severe {
+      background: #ffcccc;
+    }
+
+    .severe:hover {
+      background: #ffdede;
+    }
+
+    .yellow {
+      background: #fff3cd;
+    }
+
+    .yellow:hover {
+      background: #ffe8a3;
+    }
+
+    .safe-row {
+      background: #ffffff;
+    }
+
+    .safe-row:hover {
+      background: #f9fbff;
+    }
+
+    .warning-row {
+      background: #fff8f8;
+    }
+
+    .warning-row:hover {
+      background: #ffecec;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .error {
+      color: #d93025;
+      font-weight: bold;
+    }
+
+    .success {
+      color: #188038;
+      font-weight: bold;
+    }
+
+    .form-row {
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      margin-top: 10px;
+      margin-bottom: 12px;
+      font-size: 18px;
+      color: #2F6FE4;
+      font-weight: bold;
+    }
+
+    .login-card {
+      max-width: 420px;
+      margin-top: 40px;
+    }
+
+    .help-link {
+      display: inline-block;
+      margin-left: 6px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+      text-align: center;
+      border-radius: 50%;
+      background: #2F6FE4;
+      color: white;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        margin: 10px;
+      }
+
+      .card {
+        padding: 12px;
+      }
+
+      th, td {
+        font-size: 12px;
+        padding: 6px;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <div class="logo">M</div>
+    <div>
+      <div class="header-title">MedSafety Link</div>
+      <div class="header-subtitle">医療機関による安否確認システム</div>
+    </div>
+  </div>
+
+  {% if show_menu is not defined or show_menu %}
+  <div class="menu">
+    <a href="/admin/settings">設定</a> |
+    <a href="/admin/register">患者登録</a> |
+    <a href="/admin/responders">回答一覧</a> |
+    <a href="/admin/broadcast">一斉送信</a> |
+    <a href="/admin/remind">未回答再送</a> |
+    <a href="/admin/mode">モード切替</a> |
+    <a href="/logout">ログアウト</a>
+  </div>
+  {% endif %}
+
+  <h2>{{ title }}</h2>
+
+  {% block content %}{% endblock %}
+</body>
+</html>

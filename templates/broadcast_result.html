@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.5">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">{% extends "base.html" %}</p>
+<p class="p1">{% block content %}</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;div class="card"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;p&gt;成功: {{ success }} 件 / 失敗: {{ fail }} 件&lt;/p&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;table&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;th&gt;患者ID&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;th&gt;氏名&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;th&gt;結果&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;th&gt;詳細&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>{% for r in results %}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td&gt;{{ r.patient_id }}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td&gt;{{ r.name }}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td&gt;{% if r.ok %}成功{% else %}失敗{% endif %}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;td&gt;{{ r.detail }}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>{% endfor %}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/table&gt;</p>
+<p class="p1">&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">{% endblock %}</p>
+</body>
+</html>
