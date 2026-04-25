@@ -6,6 +6,10 @@
 <div class="card">
   <p><strong>ログイン中の施設ID:</strong> {{ institution_id }}</p>
   <p><strong>現在モード:</strong> {{ current_mode }}</p>
+  <div class="muted" style="margin-bottom:16px;">
+    この画面では、ログイン中の施設だけに適用されるLINE連携、Google Sheets連携、管理者通知先を設定します。
+    多施設で利用する場合、施設ごとに別々のトークンやスプレッドシートIDを保存できます。
+  </div>
 
   <form method="POST" action="/admin/settings/save">
 
@@ -14,16 +18,22 @@
     <div class="form-row">
       <label>施設名</label><br>
       <input name="hospital_name" value="{{ institution.name }}">
+      <div class="muted">管理画面や通知内容で表示する医療機関名です。</div>
     </div>
 
     <div class="form-row">
       <label>診療科</label><br>
       <input name="department" value="{{ institution.department }}">
+      <div class="muted">施設内の担当診療科や部署名です。例: 糖尿病・内分泌内科、訪問診療部など。</div>
     </div>
 
     <div class="form-row">
       <label>ログインパスワード</label><br>
       <input name="password" value="{{ institution.password }}">
+      <div class="muted">
+        この施設IDで管理画面にログインするためのパスワードです。
+        実働時は8文字以上で、英字・数字を混ぜたものを推奨します。
+      </div>
     </div>
 
     <div class="section-title">LINE設定</div>
@@ -31,11 +41,20 @@
     <div class="form-row">
       <label>チャネルアクセストークン</label><br>
       <input name="line_token" value="{{ institution.line.channel_access_token }}">
+      <div class="muted">
+        LINE公式アカウントから患者・管理者へメッセージを送信するための認証キーです。
+        LINE Developers の対象チャネル → Messaging API → チャネルアクセストークンで取得します。
+      </div>
     </div>
 
     <div class="form-row">
       <label>管理者LINE ID（カンマ区切り）</label><br>
       <input name="admin_ids" value="{{ ','.join(institution.admins.line_user_ids) }}">
+      <div class="muted">
+        緊急回答が届いたときに通知を受け取る医療者のLINE user_idです。
+        複数人へ通知する場合はカンマ区切りで入力します。
+        管理者本人がLINE公式アカウントへメッセージを送ると、初期セットアップ画面の候補に表示されます。
+      </div>
     </div>
 
     <div class="section-title">Google設定</div>
@@ -43,6 +62,11 @@
     <div class="form-row">
       <label>施設専用スプレッドシートID</label><br>
       <input name="spreadsheet_id" value="{{ institution.google.spreadsheet_id }}">
+      <div class="muted">
+        患者情報、安否回答、未登録ユーザー、モード設定を保存するGoogleスプレッドシートのIDです。
+        Google Sheets のURL内の <code>/d/</code> と <code>/edit</code> の間にある文字列を入力します。
+        例: <code>https://docs.google.com/spreadsheets/d/ここがID/edit</code>
+      </div>
     </div>
 
     <button type="submit">保存</button>

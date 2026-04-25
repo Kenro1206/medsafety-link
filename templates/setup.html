@@ -4,20 +4,49 @@
 {% block content %}
 <div class="card" style="max-width: 960px;">
   <div class="section-title">初期セットアップ</div>
-  <div class="muted" style="margin-bottom: 16px;">施設ID: {{ institution_id }}</div>
+  <div class="muted" style="margin-bottom: 16px;">
+    施設ID: {{ institution_id }}<br>
+    LINEとGoogle Sheetsを使うための最初の設定を行います。ここで保存した内容は、この施設IDに紐づいて使われます。
+  </div>
 
   {% if message %}<div class="success" style="margin-bottom: 14px;">{{ message }}</div>{% endif %}
   {% if error_message %}<div class="error" style="margin-bottom: 14px;">{{ error_message }}</div>{% endif %}
 
   <form method="POST" enctype="multipart/form-data">
     <div class="section-title">施設情報</div>
-    <div class="form-row"><label for="hospital_name">病院名</label><br><input id="hospital_name" type="text" name="hospital_name" value="{{ institution.name }}" required></div>
-    <div class="form-row"><label for="department">診療科</label><br><input id="department" type="text" name="department" value="{{ institution.department }}" required></div>
-    <div class="form-row"><label for="hospital_phone">電話番号</label><br><input id="hospital_phone" type="text" name="hospital_phone" value="{{ institution.phone }}"></div>
+    <div class="form-row">
+      <label for="hospital_name">病院名</label><br>
+      <input id="hospital_name" type="text" name="hospital_name" value="{{ institution.name }}" required>
+      <div class="muted">通知や管理画面で表示する施設名です。</div>
+    </div>
+    <div class="form-row">
+      <label for="department">診療科</label><br>
+      <input id="department" type="text" name="department" value="{{ institution.department }}" required>
+      <div class="muted">安否確認を運用する診療科・部署名です。</div>
+    </div>
+    <div class="form-row">
+      <label for="hospital_phone">電話番号</label><br>
+      <input id="hospital_phone" type="text" name="hospital_phone" value="{{ institution.phone }}">
+      <div class="muted">必要時に患者や関係者へ案内する代表電話番号です。</div>
+    </div>
 
     <div class="section-title">管理者設定</div>
-    <div class="form-row"><label for="admin_password">管理者パスワード</label><br><input id="admin_password" type="text" name="admin_password" value="{{ institution.password }}" required></div>
-    <div class="form-row"><label for="admin_ids">管理者LINE ID（カンマ区切り）</label><br><input id="admin_ids" type="text" name="admin_ids" value="{{ ','.join(institution.admins.line_user_ids) }}"></div>
+    <div class="form-row">
+      <label for="admin_password">管理者パスワード</label><br>
+      <input id="admin_password" type="text" name="admin_password" value="{{ institution.password }}" required>
+      <div class="muted">
+        管理画面にログインするためのパスワードです。
+        実働時は初期値のままにせず、8文字以上の推測されにくい文字列に変更してください。
+      </div>
+    </div>
+    <div class="form-row">
+      <label for="admin_ids">管理者LINE ID（カンマ区切り）</label><br>
+      <input id="admin_ids" type="text" name="admin_ids" value="{{ ','.join(institution.admins.line_user_ids) }}">
+      <div class="muted">
+        緊急回答を受け取る医療者のLINE user_idです。
+        下に候補が表示されている場合は、管理者本人がLINE公式アカウントへ送信したIDを選択できます。
+      </div>
+    </div>
 
     {% if settings.setup.candidate_admin_line_ids %}
       <div class="form-row">
@@ -32,11 +61,35 @@
     {% endif %}
 
     <div class="section-title">LINE設定</div>
-    <div class="form-row"><label for="line_token">チャネルアクセストークン</label><br><input id="line_token" type="text" name="line_token" value="{{ institution.line.channel_access_token }}"></div>
+    <div class="form-row">
+      <label for="line_token">チャネルアクセストークン</label><br>
+      <input id="line_token" type="text" name="line_token" value="{{ institution.line.channel_access_token }}">
+      <div class="muted">
+        LINE公式アカウントがメッセージを送るための認証キーです。
+        LINE Developers → 対象チャネル → Messaging API → チャネルアクセストークンから取得します。
+        長期アクセストークンの利用を推奨します。
+      </div>
+    </div>
 
     <div class="section-title">Google設定</div>
-    <div class="form-row"><label for="service_account_file">サービスアカウントJSONファイル</label><br><input id="service_account_file" type="file" name="service_account_file" accept=".json"><div class="muted">現在: {{ institution.google.service_account_file }}</div></div>
-    <div class="form-row"><label for="spreadsheet_id">スプレッドシートID</label><br><input id="spreadsheet_id" type="text" name="spreadsheet_id" value="{{ institution.google.spreadsheet_id }}"></div>
+    <div class="form-row">
+      <label for="service_account_file">サービスアカウントJSONファイル</label><br>
+      <input id="service_account_file" type="file" name="service_account_file" accept=".json">
+      <div class="muted">
+        Google Sheetsへアクセスするための認証ファイルです。
+        Google Cloudでサービスアカウントを作成し、JSONキーをダウンロードしてアップロードします。<br>
+        現在: {{ institution.google.service_account_file }}
+      </div>
+    </div>
+    <div class="form-row">
+      <label for="spreadsheet_id">スプレッドシートID</label><br>
+      <input id="spreadsheet_id" type="text" name="spreadsheet_id" value="{{ institution.google.spreadsheet_id }}">
+      <div class="muted">
+        データ保存先となるGoogleスプレッドシートのIDです。
+        スプレッドシートはサービスアカウントのメールアドレスに編集権限で共有してください。
+        保存後に「Googleシート初期化」を押すと、必要なタブを作成します。
+      </div>
+    </div>
 
     <button type="submit">設定を保存</button>
   </form>

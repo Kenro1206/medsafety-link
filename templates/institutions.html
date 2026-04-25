@@ -5,18 +5,26 @@
 
 <div class="card" style="max-width:900px;">
   <div class="section-title">新しい施設IDを追加</div>
+  <div class="muted" style="margin-bottom:14px;">
+    施設IDはログイン時に使う識別子です。施設ごとにIDとパスワードを分けることで、LINE設定やGoogleスプレッドシート設定を個別に管理できます。
+    施設IDはあとから変更せず、必要な場合は新しい施設IDを追加してください。
+  </div>
   <form method="POST" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;">
     <input type="hidden" name="action" value="create">
-    <div><label>施設ID</label><br><input name="institution_id" placeholder="例: clinic_tokyo" required></div>
-    <div><label>施設名</label><br><input name="name" required></div>
-    <div><label>診療科</label><br><input name="department"></div>
-    <div><label>初期パスワード</label><br><input name="password" type="text" required></div>
+    <div><label>施設ID</label><br><input name="institution_id" placeholder="例: clinic_tokyo" required><div class="muted">半角英数字、ハイフン、アンダースコアが使えます。</div></div>
+    <div><label>施設名</label><br><input name="name" required><div class="muted">画面や通知に表示する名称です。</div></div>
+    <div><label>診療科</label><br><input name="department"><div class="muted">担当部署名です。</div></div>
+    <div><label>初期パスワード</label><br><input name="password" type="text" required><div class="muted">追加後、施設設定から変更できます。</div></div>
     <button type="submit">追加</button>
   </form>
 </div>
 
 <div class="card">
   <div class="section-title">登録済み施設</div>
+  <div class="muted" style="margin-bottom:14px;">
+    「この施設を操作」を押すと、その施設の設定画面・患者一覧・送信機能を操作対象に切り替えます。
+    パスワード欄は空欄のまま更新すると変更されません。
+  </div>
   <table>
     <tr><th>施設ID</th><th>施設名</th><th>診療科</th><th>パスワード変更</th><th>操作</th></tr>
     {% for institution_id, inst in institutions.items() %}
