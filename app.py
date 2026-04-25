@@ -11,7 +11,7 @@ from core.config_manager import load_settings
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "secret")
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key")
 
 
 @app.before_request
@@ -28,7 +28,7 @@ def check_setup():
     if request.path.startswith("/static/"):
         return None
 
-    if request.path in open_paths:
+    if request.path in open_paths or request.path.startswith("/setup/test_line_to/"):
         return None
 
     s = load_settings()
@@ -46,8 +46,3 @@ register_auth_routes(app)
 register_admin_routes(app)
 register_webhook_routes(app)
 register_setup_routes(app)
-
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5005))
-    debug = os.getenv("DEBUG", "false").lower() == "true"
-    app.run(host="0.0.0.0", port=port, debug=debug, use_reloader=False)
