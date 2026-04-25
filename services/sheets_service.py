@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from urllib.parse import quote
 
 from core.config_manager import load_settings
 from core.institution_context import get_current_institution
@@ -41,11 +42,22 @@ def get_credentials():
     return Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
 
-def get_sheets_service():
-    from googleapiclient.discovery import build
+def get_authorized_session():
+    from google.auth.transport.requests import AuthorizedSession
 
     creds = get_credentials()
-    return build("sheets", "v4", credentials=creds, cache_discovery=False)
+    return AuthorizedSession(creds)
+
+
+def sheets_api_request(method, path, **kwargs):
+    session = get_authorized_session()
+    url = f"https://sheets.googleapis.com/v4/spreadsheets/{get_spreadsheet_id()}{path}"
+    response = session.request(method, url, timeout=20, **kwargs)
+    if response.status_code >= 400:
+        raise ValueError(f"Google Sheets API error: status={response.status_code}, body={response.text}")
+    if response.text:
+        return response.json()
+    return {}
 
 
 def get_spreadsheet_id():
@@ -64,33 +76,26 @@ def get_spreadsheet_id():
 
 
 def read_sheet(range_name):
-    service = get_sheets_service()
-    result = service.spreadsheets().values().get(
-        spreadsheetId=get_spreadsheet_id(),
-        range=range_name
-    ).execute()
+    result = sheets_api_request("GET", f"/values/{quote(range_name, safe='')}")
     return result.get("values", [])
 
 
 def append_sheet(range_name, row_values):
-    service = get_sheets_service()
-    service.spreadsheets().values().append(
-        spreadsheetId=get_spreadsheet_id(),
-        range=range_name,
-        valueInputOption="USER_ENTERED",
-        insertDataOption="INSERT_ROWS",
-        body={"values": [row_values]}
-    ).execute()
+    sheets_api_request(
+        "POST",
+        f"/values/{quote(range_name, safe='')}:append",
+        params={"valueInputOption": "USER_ENTERED", "insertDataOption": "INSERT_ROWS"},
+        json={"values": [row_values]}
+    )
 
 
 def update_sheet(range_name, values):
-    service = get_sheets_service()
-    service.spreadsheets().values().update(
-        spreadsheetId=get_spreadsheet_id(),
-        range=range_name,
-        valueInputOption="USER_ENTERED",
-        body={"values": values}
-    ).execute()
+    sheets_api_request(
+        "PUT",
+        f"/values/{quote(range_name, safe='')}",
+        params={"valueInputOption": "USER_ENTERED"},
+        json={"values": values}
+    )
 
 
 def rows_to_dicts(rows):
@@ -204,12 +209,7 @@ def set_latest_response_handled(patient_id, handled):
 
 
 def ensure_spreadsheet_schema():
-    service = get_sheets_service()
-    spreadsheet_id = get_spreadsheet_id()
-    spreadsheet = service.spreadsheets().get(
-        spreadsheetId=spreadsheet_id,
-        fields="sheets.properties.title"
-    ).execute()
+    spreadsheet = sheets_api_request("GET", "", params={"fields": "sheets.properties.title"})
     existing_titles = {s["properties"]["title"] for s in spreadsheet.get("sheets", [])}
 
     requests = []
@@ -218,10 +218,7 @@ def ensure_spreadsheet_schema():
             requests.append({"addSheet": {"properties": {"title": title}}})
 
     if requests:
-        service.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body={"requests": requests}
-        ).execute()
+        sheets_api_request("POST", ":batchUpdate", json={"requests": requests})
 
     initialized = []
     for title, values in REQUIRED_SHEETS.items():

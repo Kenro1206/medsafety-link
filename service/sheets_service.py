@@ -1,6 +1,7 @@
 import os
 import json
 from datetime import datetime
+from urllib.parse import quote
 
 from core.config_manager import load_settings
 
@@ -30,11 +31,22 @@ def get_credentials():
     return Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
 
-def get_sheets_service():
-    from googleapiclient.discovery import build
+def get_authorized_session():
+    from google.auth.transport.requests import AuthorizedSession
 
     creds = get_credentials()
-    return build("sheets", "v4", credentials=creds, cache_discovery=False)
+    return AuthorizedSession(creds)
+
+
+def sheets_api_request(method, path, **kwargs):
+    session = get_authorized_session()
+    url = f"https://sheets.googleapis.com/v4/spreadsheets/{get_spreadsheet_id()}{path}"
+    response = session.request(method, url, timeout=20, **kwargs)
+    if response.status_code >= 400:
+        raise ValueError(f"Google Sheets API error: status={response.status_code}, body={response.text}")
+    if response.text:
+        return response.json()
+    return {}
 
 
 def get_spreadsheet_id():
@@ -48,37 +60,28 @@ def get_spreadsheet_id():
 
 
 def read_sheet(range_name):
-    service = get_sheets_service()
-    result = service.spreadsheets().values().get(
-        spreadsheetId=get_spreadsheet_id(),
-        range=range_name
-    ).execute()
+    result = sheets_api_request("GET", f"/values/{quote(range_name, safe='')}")
     return result.get("values", [])
 
 
 def append_sheet(range_name, row_values):
-    service = get_sheets_service()
     body = {"values": [row_values]}
-
-    service.spreadsheets().values().append(
-        spreadsheetId=get_spreadsheet_id(),
-        range=range_name,
-        valueInputOption="USER_ENTERED",
-        insertDataOption="INSERT_ROWS",
-        body=body
-    ).execute()
+    sheets_api_request(
+        "POST",
+        f"/values/{quote(range_name, safe='')}:append",
+        params={"valueInputOption": "USER_ENTERED", "insertDataOption": "INSERT_ROWS"},
+        json=body
+    )
 
 
 def update_sheet(range_name, values):
-    service = get_sheets_service()
     body = {"values": values}
-
-    service.spreadsheets().values().update(
-        spreadsheetId=get_spreadsheet_id(),
-        range=range_name,
-        valueInputOption="USER_ENTERED",
-        body=body
-    ).execute()
+    sheets_api_request(
+        "PUT",
+        f"/values/{quote(range_name, safe='')}",
+        params={"valueInputOption": "USER_ENTERED"},
+        json=body
+    )
 
 
 def rows_to_dicts(rows):
