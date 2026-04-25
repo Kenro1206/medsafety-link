@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 --max-requests 200 --max-requests-jitter 50
     healthCheckPath: /healthz
     envVars:
       - key: FLASK_SECRET_KEY
@@ -13,6 +13,8 @@ services:
         value: /var/data/settings.json
       - key: GOOGLE_SERVICE_JSON
         sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
     disk:
       name: medsafety-data
       mountPath: /var/data

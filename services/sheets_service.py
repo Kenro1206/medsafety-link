@@ -2,9 +2,6 @@ import json
 import os
 from datetime import datetime
 
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-
 from core.config_manager import load_settings
 from core.institution_context import get_current_institution
 
@@ -23,6 +20,8 @@ REQUIRED_SHEETS = {
 
 
 def get_credentials():
+    from google.oauth2.service_account import Credentials
+
     json_str = os.getenv("GOOGLE_SERVICE_JSON", "").strip()
     if json_str:
         info = json.loads(json_str)
@@ -43,8 +42,10 @@ def get_credentials():
 
 
 def get_sheets_service():
+    from googleapiclient.discovery import build
+
     creds = get_credentials()
-    return build("sheets", "v4", credentials=creds)
+    return build("sheets", "v4", credentials=creds, cache_discovery=False)
 
 
 def get_spreadsheet_id():

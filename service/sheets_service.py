@@ -2,9 +2,6 @@ import os
 import json
 from datetime import datetime
 
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-
 from core.config_manager import load_settings
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -16,6 +13,8 @@ SYSTEM_MODE_RANGE = "system_mode!A:A"
 
 
 def get_credentials():
+    from google.oauth2.service_account import Credentials
+
     json_str = os.getenv("GOOGLE_SERVICE_JSON", "").strip()
 
     if json_str:
@@ -32,8 +31,10 @@ def get_credentials():
 
 
 def get_sheets_service():
+    from googleapiclient.discovery import build
+
     creds = get_credentials()
-    return build("sheets", "v4", credentials=creds)
+    return build("sheets", "v4", credentials=creds, cache_discovery=False)
 
 
 def get_spreadsheet_id():
