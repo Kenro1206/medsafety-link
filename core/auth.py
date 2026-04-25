@@ -1,14 +1,8 @@
 from flask import session, redirect
-from core.config_manager import load_settings
-
-
-def get_admin_password():
-    s = load_settings()
-    return s.get("auth", {}).get("admin_password", "admin")
 
 
 def is_logged_in():
-    return session.get("logged_in", False)
+    return session.get("logged_in", False) and session.get("institution_id")
 
 
 def require_login():

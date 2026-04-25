@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: medsafety-link
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: SETTINGS_PATH
+        value: /var/data/settings.json
+      - key: GOOGLE_SERVICE_JSON
+        sync: false
+    disk:
+      name: medsafety-data
+      mountPath: /var/data
+      sizeGB: 1

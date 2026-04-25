@@ -1,27 +1,65 @@
+import json
+import os
+from datetime import datetime
+
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+
 from core.config_manager import load_settings
+from core.institution_context import get_current_institution
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-
 PATIENTS_RANGE = "patients!A:D"
 PENDING_RANGE = "pending_users!A:D"
-RESPONSES_RANGE = "responses!A:G"
+RESPONSES_RANGE = "responses!A:H"
 SYSTEM_MODE_RANGE = "system_mode!A:A"
+
+REQUIRED_SHEETS = {
+    "patients": [["patient_id", "name", "phone", "line_user_id"]],
+    "pending_users": [["timestamp", "line_user_id", "patient_name", "display_text"]],
+    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled"]],
+    "system_mode": [["mode"], ["NORMAL"]],
+}
+
+
+def get_credentials():
+    json_str = os.getenv("GOOGLE_SERVICE_JSON", "").strip()
+    if json_str:
+        info = json.loads(json_str)
+        return Credentials.from_service_account_info(info, scopes=SCOPES)
+
+    institution = get_current_institution()
+    service_account_file = ""
+    if institution:
+        service_account_file = institution.get("google", {}).get("service_account_file", "").strip()
+
+    if not service_account_file:
+        service_account_file = load_settings().get("google", {}).get("service_account_file", "").strip()
+
+    if not service_account_file:
+        raise ValueError("Google認証情報が未設定です。GOOGLE_SERVICE_JSON または service_account_file を設定してください。")
+
+    return Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
 
 def get_sheets_service():
-    s = load_settings()
-    creds = Credentials.from_service_account_file(
-        s["google"]["service_account_file"],
-        scopes=SCOPES
-    )
+    creds = get_credentials()
     return build("sheets", "v4", credentials=creds)
 
 
 def get_spreadsheet_id():
-    s = load_settings()
-    return s["google"]["spreadsheet_id"]
+    institution = get_current_institution()
+    spreadsheet_id = ""
+    if institution:
+        spreadsheet_id = institution.get("google", {}).get("spreadsheet_id", "").strip()
+
+    if not spreadsheet_id:
+        spreadsheet_id = load_settings().get("google", {}).get("spreadsheet_id", "").strip()
+
+    if not spreadsheet_id:
+        raise ValueError("スプレッドシートIDが未設定です。")
+
+    return spreadsheet_id
 
 
 def read_sheet(range_name):
@@ -35,38 +73,35 @@ def read_sheet(range_name):
 
 def append_sheet(range_name, row_values):
     service = get_sheets_service()
-    body = {"values": [row_values]}
     service.spreadsheets().values().append(
         spreadsheetId=get_spreadsheet_id(),
         range=range_name,
         valueInputOption="USER_ENTERED",
         insertDataOption="INSERT_ROWS",
-        body=body
+        body={"values": [row_values]}
     ).execute()
 
 
 def update_sheet(range_name, values):
     service = get_sheets_service()
-    body = {"values": values}
     service.spreadsheets().values().update(
         spreadsheetId=get_spreadsheet_id(),
         range=range_name,
         valueInputOption="USER_ENTERED",
-        body=body
+        body={"values": values}
     ).execute()
 
 
 def rows_to_dicts(rows):
     if len(rows) < 2:
         return []
-
     headers = rows[0]
     data = []
     for row in rows[1:]:
-        d = {}
-        for i, h in enumerate(headers):
-            d[h] = row[i] if i < len(row) else ""
-        data.append(d)
+        item = {}
+        for i, header in enumerate(headers):
+            item[header] = row[i] if i < len(row) else ""
+        data.append(item)
     return data
 
 
@@ -107,7 +142,6 @@ def load_responses():
 
 
 def append_response(patient, user_id, event_type, code, label):
-    from datetime import datetime
     append_sheet(RESPONSES_RANGE, [
         datetime.now().isoformat(timespec="seconds"),
         patient.get("patient_id", ""),
@@ -115,7 +149,8 @@ def append_response(patient, user_id, event_type, code, label):
         user_id,
         event_type,
         code,
-        label
+        label,
+        ""
     ])
 
 
@@ -130,6 +165,74 @@ def get_latest_responses():
         if pid not in latest or ts >= latest[pid].get("timestamp", ""):
             latest[pid] = r
     return latest
+
+
+def set_latest_response_handled(patient_id, handled):
+    rows = read_sheet(RESPONSES_RANGE)
+    if len(rows) < 2:
+        return False
+
+    headers = rows[0]
+    while len(headers) < 8:
+        headers.append("handled")
+    if "handled" not in headers:
+        headers.append("handled")
+
+    pid_index = headers.index("patient_id") if "patient_id" in headers else 1
+    ts_index = headers.index("timestamp") if "timestamp" in headers else 0
+    handled_index = headers.index("handled")
+
+    best_row_index = None
+    best_ts = ""
+    for idx, row in enumerate(rows[1:], start=2):
+        pid = row[pid_index] if pid_index < len(row) else ""
+        ts = row[ts_index] if ts_index < len(row) else ""
+        if pid == patient_id and (best_row_index is None or ts >= best_ts):
+            best_row_index = idx
+            best_ts = ts
+
+    if best_row_index is None:
+        return False
+
+    target = rows[best_row_index - 1]
+    while len(target) <= handled_index:
+        target.append("")
+    target[handled_index] = "TRUE" if handled else ""
+    update_sheet(f"responses!A{best_row_index}:H{best_row_index}", [target[:8]])
+    return True
+
+
+def ensure_spreadsheet_schema():
+    service = get_sheets_service()
+    spreadsheet_id = get_spreadsheet_id()
+    spreadsheet = service.spreadsheets().get(
+        spreadsheetId=spreadsheet_id,
+        fields="sheets.properties.title"
+    ).execute()
+    existing_titles = {s["properties"]["title"] for s in spreadsheet.get("sheets", [])}
+
+    requests = []
+    for title in REQUIRED_SHEETS:
+        if title not in existing_titles:
+            requests.append({"addSheet": {"properties": {"title": title}}})
+
+    if requests:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={"requests": requests}
+        ).execute()
+
+    initialized = []
+    for title, values in REQUIRED_SHEETS.items():
+        rows = read_sheet(f"{title}!A1:H2")
+        if not rows:
+            update_sheet(f"{title}!A1", values)
+            initialized.append(title)
+        elif title == "responses" and rows[0] != values[0]:
+            update_sheet("responses!A1:H1", values[:1])
+            initialized.append(title)
+
+    return initialized
 
 
 def get_system_mode():

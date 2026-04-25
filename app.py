@@ -11,19 +11,17 @@ from core.config_manager import load_settings
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key")
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-me-in-production")
+
+
+@app.route("/healthz")
+def healthz():
+    return {"status": "ok", "service": "MedSafety Link"}, 200
 
 
 @app.before_request
 def check_setup():
-    open_paths = {
-        "/setup",
-        "/setup/test_line",
-        "/setup/test_google",
-        "/login",
-        "/logout",
-        "/callback"
-    }
+    open_paths = {"/setup", "/setup/test_line", "/setup/test_google", "/setup/init_google", "/login", "/logout", "/callback", "/healthz"}
 
     if request.path.startswith("/static/"):
         return None
@@ -32,11 +30,7 @@ def check_setup():
         return None
 
     s = load_settings()
-
-    google_ready = bool(s.get("google", {}).get("spreadsheet_id", "").strip())
-    line_ready = bool(s.get("line", {}).get("channel_access_token", "").strip())
-
-    if not google_ready or not line_ready:
+    if not s.get("institutions"):
         return redirect("/setup")
 
     return None

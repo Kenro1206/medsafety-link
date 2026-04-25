@@ -1,51 +1,46 @@
-from flask import request, render_template, redirect
-
+import re
+from flask import request, render_template, redirect, session
 from core.auth import require_login
 from core.config_manager import load_settings, save_settings
+from core.institution_context import get_current_institution_id, get_current_institution
 from core.utils import help_link
-from services.line_service import test_line_connection, push_text
+from services.line_service import push_text
 from services.sheets_service import (
-    load_patients,
-    save_patients,
-    load_pending_users,
-    save_pending_users,
-    load_responses,
     get_latest_responses,
     get_system_mode,
-    set_system_mode
+    load_patients,
+    load_pending_users,
+    save_patients,
+    save_pending_users,
+    set_latest_response_handled,
+    set_system_mode,
 )
 
 
 def register_admin_routes(app):
 
-    # =========================
-    # 共通安全ラッパー
-    # =========================
     def safe_call(func, default):
         try:
             return func()
         except Exception as e:
-            print(f"[ERROR] {func.__name__}:", e)
+            print("[ERROR]", e)
             return default
 
-    # =========================
-    # 設定画面
-    # =========================
+    def default_message(key):
+        return load_settings().get("messages", {}).get(key, "")
+
     @app.route("/admin/settings")
     def admin_settings():
         auth = require_login()
         if auth:
             return auth
 
-        s = load_settings()
-
-        current_mode = safe_call(get_system_mode, "NORMAL")
-
         return render_template(
             "settings.html",
             title="設定",
-            settings=s,
-            current_mode=current_mode,
+            institution_id=get_current_institution_id(),
+            institution=get_current_institution(),
+            current_mode=safe_call(get_system_mode, "NORMAL"),
             help_link=help_link
         )
 
@@ -55,240 +50,248 @@ def register_admin_routes(app):
         if auth:
             return auth
 
+        institution_id = get_current_institution_id()
         s = load_settings()
+        inst = s["institutions"][institution_id]
 
-        s["hospital"]["name"] = request.form.get("hospital_name", "").strip()
-        s["hospital"]["department"] = request.form.get("department", "").strip()
-        s["hospital"]["phone"] = request.form.get("hospital_phone", "").strip()
-
-        s["auth"]["admin_password"] = request.form.get("admin_password", "admin").strip()
-
-        s["admins"]["line_user_ids"] = [
-            x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()
-        ]
-
-        s["line"]["channel_access_token"] = request.form.get("line_token", "").strip()
-        s["google"]["service_account_file"] = request.form.get("google_service_account_file", "").strip()
-        s["google"]["spreadsheet_id"] = request.form.get("google_spreadsheet_id", "").strip()
-
+        inst["name"] = request.form.get("hospital_name", "").strip()
+        inst["department"] = request.form.get("department", "").strip()
+        inst["phone"] = request.form.get("hospital_phone", "").strip()
+        inst["password"] = request.form.get("password", "").strip() or inst.get("password", "admin")
+        inst["line"]["channel_access_token"] = request.form.get("line_token", "").strip()
+        inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()
+        inst["admins"]["line_user_ids"] = [x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()]
         save_settings(s)
-
         return redirect("/admin/settings")
 
-    # =========================
-    # 患者登録
-    # =========================
-    @app.route("/admin/register")
-    def admin_register():
+    @app.route("/admin/institutions", methods=["GET", "POST"])
+    def institutions():
         auth = require_login()
         if auth:
             return auth
-
-        patients = safe_call(load_patients, [])
-        pending = safe_call(load_pending_users, [])
-
-        unlinked = [p for p in patients if not p.get("line_user_id", "").strip()]
-
-        return render_template(
-            "register.html",
-            title="患者登録",
-            pending_users=pending,
-            patients=patients,
-            unlinked_patients=unlinked
-        )
-
-    @app.route("/admin/link", methods=["POST"])
-    def admin_link():
-        auth = require_login()
-        if auth:
-            return auth
-
-        patient_id = request.form.get("patient_id", "").strip()
-        line_user_id = request.form.get("line_user_id", "").strip()
-
-        patients = safe_call(load_patients, [])
-
-        for p in patients:
-            if p.get("patient_id") == patient_id:
-                p["line_user_id"] = line_user_id
-
-        safe_call(lambda: save_patients(patients), None)
 
         s = load_settings()
-        push_text(line_user_id, s["messages"].get("registration_complete", "登録完了しました"))
+        message = ""
+        error_message = ""
 
+        if request.method == "POST":
+            action = request.form.get("action", "").strip()
+            try:
+                if action == "create":
+                    institution_id = request.form.get("institution_id", "").strip()
+                    if not re.fullmatch(r"[A-Za-z0-9_-]{3,40}", institution_id or ""):
+                        raise ValueError("施設IDは3〜40文字の半角英数字、ハイフン、アンダースコアで入力してください。")
+                    if institution_id in s.get("institutions", {}):
+                        raise ValueError("この施設IDはすでに登録されています。")
+
+                    s.setdefault("institutions", {})[institution_id] = {
+                        "name": request.form.get("name", "").strip() or institution_id,
+                        "department": request.form.get("department", "").strip(),
+                        "phone": "",
+                        "password": request.form.get("password", "").strip() or "admin",
+                        "line": {"channel_access_token": ""},
+                        "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},
+                        "admins": {"line_user_ids": []}
+                    }
+                    message = "施設を追加しました。"
+
+                elif action == "update":
+                    institution_id = request.form.get("institution_id", "").strip()
+                    inst = s.get("institutions", {}).get(institution_id)
+                    if not inst:
+                        raise ValueError("施設が見つかりません。")
+                    inst["name"] = request.form.get("name", "").strip() or inst.get("name", institution_id)
+                    inst["department"] = request.form.get("department", "").strip()
+                    password = request.form.get("password", "").strip()
+                    if password:
+                        inst["password"] = password
+                    message = "施設情報を更新しました。"
+
+                elif action == "switch":
+                    institution_id = request.form.get("institution_id", "").strip()
+                    if institution_id not in s.get("institutions", {}):
+                        raise ValueError("施設が見つかりません。")
+                    session["institution_id"] = institution_id
+                    s["default_institution_id"] = institution_id
+                    message = "操作対象の施設を切り替えました。"
+
+                else:
+                    raise ValueError("不明な操作です。")
+
+                save_settings(s)
+                s = load_settings()
+            except Exception as e:
+                error_message = str(e)
+
+        return render_template(
+            "institutions.html",
+            title="施設ID管理",
+            institutions=s.get("institutions", {}),
+            current_institution_id=get_current_institution_id(),
+            message=message,
+            error_message=error_message,
+        )
+
+    @app.route("/admin/register", methods=["GET", "POST"])
+    def register_patients():
+        auth = require_login()
+        if auth:
+            return auth
+
+        message = ""
+        error_message = ""
+        if request.method == "POST":
+            try:
+                patient_id = request.form.get("patient_id", "").strip()
+                name = request.form.get("name", "").strip()
+                phone = request.form.get("phone", "").strip()
+                line_user_id = request.form.get("line_user_id", "").strip()
+                if not patient_id or not name:
+                    raise ValueError("患者IDと氏名は必須です。")
+                patients = load_patients()
+                existing = next((p for p in patients if p.get("patient_id") == patient_id), None)
+                if existing:
+                    existing.update({"name": name, "phone": phone, "line_user_id": line_user_id})
+                    message = "患者情報を更新しました。"
+                else:
+                    patients.append({"patient_id": patient_id, "name": name, "phone": phone, "line_user_id": line_user_id})
+                    message = "患者を登録しました。"
+                save_patients(patients)
+            except Exception as e:
+                error_message = f"保存エラー: {e}"
+
+        patients = safe_call(load_patients, [])
+        pending_users = safe_call(load_pending_users, [])
+        unlinked_patients = [p for p in patients if not p.get("line_user_id")]
+        return render_template("register.html", title="患者登録", patients=patients, pending_users=pending_users, unlinked_patients=unlinked_patients, message=message, error_message=error_message)
+
+    @app.route("/admin/link", methods=["POST"])
+    def link_patient():
+        auth = require_login()
+        if auth:
+            return auth
+
+        line_user_id = request.form.get("line_user_id", "").strip()
+        patient_id = request.form.get("patient_id", "").strip()
+        patients = load_patients()
+        for patient in patients:
+            if patient.get("patient_id") == patient_id:
+                patient["line_user_id"] = line_user_id
+        save_patients(patients)
+        pending = [r for r in load_pending_users() if r.get("line_user_id") != line_user_id]
+        save_pending_users(pending)
         return redirect("/admin/register")
 
-    # =========================
-    # 回答一覧
-    # =========================
     @app.route("/admin/responders")
-    def admin_responders():
+    def responders():
         auth = require_login()
         if auth:
             return auth
 
         patients = safe_call(load_patients, [])
         latest = safe_call(get_latest_responses, {})
-
-        patient_map = {p.get("patient_id"): p for p in patients}
-
-        s = load_settings()
-        severe_codes = s.get("alerts", {}).get("severe_codes", [])
-
-        responder_rows = []
-
-        for pid, r in latest.items():
-            p = patient_map.get(pid, {})
-
-            responder_rows.append({
-                "patient_id": pid,
-                "name": p.get("name", ""),
-                "phone": p.get("phone", ""),
-                "timestamp": r.get("timestamp", ""),
-                "answer_label": r.get("answer_label", ""),
-                "answer_code": r.get("answer_code", ""),
-                "is_severe": r.get("answer_code") in severe_codes
+        severe = set(load_settings().get("alerts", {}).get("severe_codes", []))
+        rows = []
+        for patient in patients:
+            response = latest.get(patient.get("patient_id", ""), {})
+            code = response.get("code", "")
+            handled = str(response.get("handled", "")).upper() in ["TRUE", "済", "DONE", "1"]
+            row_class = "safe-row"
+            if code in severe and not handled:
+                row_class = "severe"
+            elif code and not handled:
+                row_class = "yellow"
+            rows.append({
+                "patient_id": patient.get("patient_id", ""),
+                "name": patient.get("name", ""),
+                "phone": patient.get("phone", ""),
+                "timestamp": response.get("timestamp", "未回答"),
+                "answer_code": code or "NO_RESPONSE",
+                "answer_label": response.get("label", "未回答"),
+                "is_handled": handled,
+                "row_class": row_class,
             })
+        return render_template("responders.html", title="回答一覧", responders=rows)
 
-        return render_template(
-            "responders.html",
-            title="回答一覧",
-            responders=responder_rows,
-            default_message=s.get("messages", {}).get("individual_default", "")
-        )
-
-    # =========================
-    # 個別送信
-    # =========================
-    @app.route("/admin/responders/message", methods=["POST"])
-    def admin_responders_message():
+    @app.route("/admin/responders/handle", methods=["POST"])
+    def handle_responder():
         auth = require_login()
         if auth:
             return auth
-
-        patient_id = request.form.get("patient_id")
-        message = request.form.get("message")
-
-        patients = safe_call(load_patients, [])
-
-        patient = next((p for p in patients if p.get("patient_id") == patient_id), None)
-
-        if not patient:
-            return "患者が見つかりません"
-
-        line_user_id = patient.get("line_user_id")
-
-        if not line_user_id:
-            return "LINE未登録"
-
-        push_text(line_user_id, message)
-
+        set_latest_response_handled(request.form.get("patient_id", "").strip(), True)
         return redirect("/admin/responders")
 
-    # =========================
-    # 一斉送信
-    # =========================
-    @app.route("/admin/broadcast")
-    def admin_broadcast():
+    @app.route("/admin/responders/unhandle", methods=["POST"])
+    def unhandle_responder():
         auth = require_login()
         if auth:
             return auth
+        set_latest_response_handled(request.form.get("patient_id", "").strip(), False)
+        return redirect("/admin/responders")
 
-        s = load_settings()
-
-        return render_template(
-            "broadcast.html",
-            title="一斉送信",
-            default_message=s.get("messages", {}).get("broadcast_default", "")
-        )
+    @app.route("/admin/broadcast")
+    def broadcast():
+        auth = require_login()
+        if auth:
+            return auth
+        return render_template("broadcast.html", title="一斉送信", default_message=default_message("broadcast_default"))
 
     @app.route("/admin/broadcast/send", methods=["POST"])
-    def admin_broadcast_send():
+    def broadcast_send():
         auth = require_login()
         if auth:
             return auth
+        message = request.form.get("message", "").strip()
+        return render_template("broadcast_result.html", title="一斉送信結果", **send_to_patients(load_patients(), message))
 
-        message = request.form.get("message")
-
-        patients = safe_call(load_patients, [])
-
-        for p in patients:
-            uid = p.get("line_user_id")
-            if uid:
-                push_text(uid, message)
-
-        return redirect("/admin/broadcast")
-
-    # =========================
-    # 未回答再送
-    # =========================
     @app.route("/admin/remind")
-    def admin_remind():
+    def remind():
         auth = require_login()
         if auth:
             return auth
-
-        s = load_settings()
-
-        return render_template(
-            "remind.html",
-            title="未回答再送",
-            default_message=s.get("messages", {}).get("remind_default", "")
-        )
+        return render_template("remind.html", title="未回答再送", default_message=default_message("remind_default"))
 
     @app.route("/admin/remind/send", methods=["POST"])
-    def admin_remind_send():
+    def remind_send():
         auth = require_login()
         if auth:
             return auth
+        message = request.form.get("message", "").strip()
+        latest = get_latest_responses()
+        targets = [p for p in load_patients() if p.get("line_user_id") and p.get("patient_id") not in latest]
+        return render_template("broadcast_result.html", title="再送結果", **send_to_patients(targets, message))
 
-        message = request.form.get("message")
-
-        patients = safe_call(load_patients, [])
-        responses = safe_call(load_responses, [])
-
-        responded_ids = {r.get("patient_id") for r in responses}
-
-        for p in patients:
-            if p.get("patient_id") not in responded_ids:
-                uid = p.get("line_user_id")
-                if uid:
-                    push_text(uid, message)
-
-        return redirect("/admin/remind")
-
-    # =========================
-    # モード切替
-    # =========================
     @app.route("/admin/mode", methods=["GET", "POST"])
-    def admin_mode():
+    def mode():
         auth = require_login()
         if auth:
             return auth
-
         if request.method == "POST":
-            mode = request.form.get("mode", "NORMAL")
-            safe_call(lambda: set_system_mode(mode), None)
+            set_system_mode(request.form.get("mode", "NORMAL"))
             return redirect("/admin/mode")
+        return render_template("mode.html", title="モード切替", current_mode=safe_call(get_system_mode, "NORMAL"))
 
-        current_mode = safe_call(get_system_mode, "NORMAL")
-
-        return render_template(
-            "mode.html",
-            title="モード切替",
-            current_mode=current_mode
-        )
-
-    # =========================
-    # LINEテスト
-    # =========================
-    @app.route("/admin/test_line")
-    def admin_test_line():
+    @app.route("/admin/help/<topic>")
+    def help_page(topic):
         auth = require_login()
         if auth:
             return auth
+        body = {
+            "settings": "LINEチャネルアクセストークン、GoogleスプレッドシートID、管理者LINE IDを設定します。",
+            "register": "未登録ユーザーのLINE user_idを患者マスタへ紐付けます。",
+            "responders": "最新回答、緊急度、対応状況を確認します。",
+        }.get(topic, "ヘルプは準備中です。")
+        return render_template("help.html", title="ヘルプ", body=body)
 
-        ok, msg = test_line_connection()
-
-        return f"結果: {'成功' if ok else '失敗'}<br>{msg}"
+    def send_to_patients(patients, message):
+        results = []
+        success = 0
+        fail = 0
+        for patient in patients:
+            if not patient.get("line_user_id"):
+                continue
+            ok, detail = push_text(patient.get("line_user_id"), message)
+            success += 1 if ok else 0
+            fail += 0 if ok else 1
+            results.append({"patient_id": patient.get("patient_id", ""), "name": patient.get("name", ""), "ok": ok, "detail": detail})
+        return {"success": success, "fail": fail, "results": results}

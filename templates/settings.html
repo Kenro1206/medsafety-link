@@ -1,100 +1,52 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.5">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000; min-height: 14.0px}
-    span.s1 {font-kerning: none}
-  </style>
-</head>
-<body>
-<p class="p1"><span class="s1">{% extends "base.html" %}</span></p>
-<p class="p1"><span class="s1">{% set title = "設定" %}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">{% block content %}</span></p>
-<p class="p1"><span class="s1">&lt;div class="card"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;p&gt;&lt;strong&gt;現在モード:&lt;/strong&gt; {{ current_mode }}&lt;/p&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;form method="POST" action="/admin/settings/save"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="section-title"&gt;病院情報&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="form-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label for="hospital_name"&gt;病院名&lt;/label&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="hospital_name" name="hospital_name" value="{{ settings.hospital.name }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="form-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label for="department"&gt;診療科&lt;/label&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="department" name="department" value="{{ settings.hospital.department }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="form-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label for="hospital_phone"&gt;電話番号&lt;/label&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="hospital_phone" name="hospital_phone" value="{{ settings.hospital.phone }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="section-title"&gt;ログイン設定&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="form-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label for="admin_password"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>管理者パスワード</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;a class="help-link" href="{{ help_link('admin_password') }}" target="_blank"&gt;?&lt;/a&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/label&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="admin_password" name="admin_password" value="{{ settings.auth.admin_password }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="section-title"&gt;管理者通知設定&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="form-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label for="admin_ids"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>管理者LINE ID（カンマ区切り）</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;a class="help-link" href="{{ help_link('admin_line_id') }}" target="_blank"&gt;?&lt;/a&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/label&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="admin_ids" name="admin_ids" value="{{ ','.join(settings.admins.line_user_ids) }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="muted"&gt;複数指定する場合はカンマ区切りで入力します。&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="section-title"&gt;LINE設定&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="form-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label for="line_token"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>チャネルアクセストークン</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;a class="help-link" href="{{ help_link('line_connection') }}" target="_blank"&gt;?&lt;/a&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/label&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="line_token" name="line_token" value="{{ settings.line.channel_access_token }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="section-title"&gt;Google設定&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="form-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label for="google_service_account_file"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>サービスアカウントJSONファイル</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;a class="help-link" href="{{ help_link('google_connection') }}" target="_blank"&gt;?&lt;/a&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/label&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="google_service_account_file" name="google_service_account_file" value="{{ settings.google.service_account_file }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="form-row"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label for="google_spreadsheet_id"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>スプレッドシートID</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;a class="help-link" href="{{ help_link('google_connection') }}" target="_blank"&gt;?&lt;/a&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/label&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="google_spreadsheet_id" name="google_spreadsheet_id" value="{{ settings.google.spreadsheet_id }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button type="submit"&gt;保存&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/form&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div class="card"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div class="section-title"&gt;接続確認&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;p&gt;&lt;a href="/admin/test_line"&gt;LINE接続確認&lt;/a&gt;&lt;/p&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1">{% endblock %}</span></p>
-</body>
-</html>
+{% extends "base.html" %}
+{% set title = "施設設定" %}
+
+{% block content %}
+
+<div class="card">
+  <p><strong>ログイン中の施設ID:</strong> {{ institution_id }}</p>
+  <p><strong>現在モード:</strong> {{ current_mode }}</p>
+
+  <form method="POST" action="/admin/settings/save">
+
+    <div class="section-title">施設情報</div>
+
+    <div class="form-row">
+      <label>施設名</label><br>
+      <input name="hospital_name" value="{{ institution.name }}">
+    </div>
+
+    <div class="form-row">
+      <label>診療科</label><br>
+      <input name="department" value="{{ institution.department }}">
+    </div>
+
+    <div class="form-row">
+      <label>ログインパスワード</label><br>
+      <input name="password" value="{{ institution.password }}">
+    </div>
+
+    <div class="section-title">LINE設定</div>
+
+    <div class="form-row">
+      <label>チャネルアクセストークン</label><br>
+      <input name="line_token" value="{{ institution.line.channel_access_token }}">
+    </div>
+
+    <div class="form-row">
+      <label>管理者LINE ID（カンマ区切り）</label><br>
+      <input name="admin_ids" value="{{ ','.join(institution.admins.line_user_ids) }}">
+    </div>
+
+    <div class="section-title">Google設定</div>
+
+    <div class="form-row">
+      <label>施設専用スプレッドシートID</label><br>
+      <input name="spreadsheet_id" value="{{ institution.google.spreadsheet_id }}">
+    </div>
+
+    <button type="submit">保存</button>
+  </form>
+</div>
+
+{% endblock %}

@@ -3,18 +3,25 @@
 {% set show_menu = false %}
 
 {% block content %}
+
 <div class="card login-card">
   <form method="POST">
     <div class="form-row">
-      <label for="password">管理者パスワード</label><br>
-      <input type="password" id="password" name="password" autocomplete="current-password">
+      <label for="institution_id">施設ID</label><br>
+      <input type="text" id="institution_id" name="institution_id" required>
+    </div>
+
+    <div class="form-row">
+      <label for="password">パスワード</label><br>
+      <input type="password" id="password" name="password" required>
     </div>
 
     <button type="submit">ログイン</button>
   </form>
 
   {% if message %}
-  <div class="error">{{ message }}</div>
+    <div class="error" style="margin-top:12px;">{{ message }}</div>
   {% endif %}
 </div>
+
 {% endblock %}

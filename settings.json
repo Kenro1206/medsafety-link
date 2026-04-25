@@ -1,49 +1,81 @@
 {
-  "hospital": {
-    "name": "未設定",
-    "department": "未設定",
-    "phone": ""
+  "institutions": {
+    "kumamoto_chuo": {
+      "name": "熊本中央病院",
+      "department": "糖尿病・内分泌・代謝内科",
+      "password": "admin",
+      "line": {
+        "channel_access_token": ""
+      },
+      "google": {
+        "spreadsheet_id": "",
+        "service_account_file": "./service_account.json"
+      },
+      "admins": {
+        "line_user_ids": []
+      },
+      "phone": ""
+    },
+    "sample_clinic": {
+      "name": "サンプルクリニック",
+      "department": "内科",
+      "password": "admin",
+      "line": {
+        "channel_access_token": ""
+      },
+      "google": {
+        "spreadsheet_id": "",
+        "service_account_file": "./service_account.json"
+      },
+      "admins": {
+        "line_user_ids": []
+      },
+      "phone": ""
+    },
+    "default": {
+      "name": "未設定",
+      "department": "未設定",
+      "phone": "",
+      "password": "admin",
+      "line": {
+        "channel_access_token": ""
+      },
+      "google": {
+        "service_account_file": "./service_account.json",
+        "spreadsheet_id": ""
+      },
+      "admins": {
+        "line_user_ids": []
+      }
+    }
   },
+  "default_institution_id": "kumamoto_chuo",
   "business_hours": {
     "start": "08:30",
     "end": "17:15"
   },
-  "admins": {
-    "line_user_ids": []
-  },
-  "auth": {
-    "admin_password": "admin"
-  },
-  "line": {
-    "channel_access_token": ""
-  },
-  "google": {
-    "service_account_file": "./service_account.json",
-    "spreadsheet_id": ""
-  },
-  "messages": {
-    "registration_complete": "【MedSafety Link 登録完了】\n安否確認システムへの登録が完了しました。\n今後、災害時にはこのLINEに通知が届きます。\nその際は、現在の状況をご返信ください。",
-    "auto_reply_business": "ご連絡ありがとうございます。内容を確認し、必要に応じて対応いたします。",
-    "auto_reply_after_hours": "ご連絡ありがとうございます。現在は時間外のため、すぐの対応ができません。診療時間内に順次確認いたします。なお、緊急の場合は救急受診をご検討ください。",
-    "auto_reply_disaster": "ご連絡ありがとうございます。現在、災害対応モードで24時間体制で対応しております。必要なもの（インスリンやお薬、ポンプや血糖測定に必要な物品、ブドウ糖など）がありましたら、お知らせください。",
-    "auto_reply_disaster_severe": "ご連絡ありがとうございます。現在、災害対応モードで24時間体制で対応しております。至急対応が必要な内容として確認いたします。必要なもの（インスリンやお薬、ポンプや血糖測定に必要な物品、ブドウ糖など）がありましたら、お知らせください。",
-    "broadcast_default": "【安否確認】\n現在の状況を返信してください。",
-    "remind_default": "【再送：安否確認】\nまだご回答が確認できていません。\n現在の状況をお知らせください。",
-    "individual_default": "状況を確認しました。当院では災害時には24時間体制で対応しておりますので、ご安心ください。インスリンやお薬、ポンプや血糖測定に必要な物品、ブドウ糖など、必要なものがありましたら、お知らせください。"
-  },
+  "holidays": [],
   "alerts": {
-    "sound_enabled": true,
-    "sound_only_severe": true,
     "severe_codes": [
       "CALL",
-      "HYPO",
-      "INSULIN_OUT"
+      "INSULIN_OUT",
+      "HYPO"
     ]
   },
   "rich_menu": {
     "normal_id": "",
     "disaster_id": ""
   },
-  "holidays": [],
-  "default_created_at": "2026-04-19T08:23:56.909156"
+  "messages": {
+    "auto_reply_business": "ご連絡ありがとうございます。内容を確認し、必要に応じて対応いたします。",
+    "auto_reply_after_hours": "ご連絡ありがとうございます。現在は時間外のため、診療時間内に確認いたします。",
+    "auto_reply_disaster": "ご連絡ありがとうございます。現在、災害対応モードで対応しております。",
+    "broadcast_default": "【安否確認】現在の状況を返信してください。\n1. 無事\n2. 体調不良\n3. 薬・インスリンが不足\n4. 低血糖が心配\n5. 至急連絡希望",
+    "remind_default": "【再送】安否確認への回答がまだ確認できていません。現在の状況を返信してください。",
+    "individual_default": "状況を確認しました。必要なものがあればお知らせください。"
+  },
+  "setup": {
+    "candidate_admin_line_ids": []
+  },
+  "default_created_at": "2026-04-25T21:50:39.264102"
 }

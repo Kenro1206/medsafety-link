@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+{% if message %}<div class="card success">{{ message }}</div>{% endif %}
+{% if error_message %}<div class="card error">{{ error_message }}</div>{% endif %}
+
+<div class="card" style="max-width:900px;">
+  <div class="section-title">新しい施設IDを追加</div>
+  <form method="POST" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;">
+    <input type="hidden" name="action" value="create">
+    <div><label>施設ID</label><br><input name="institution_id" placeholder="例: clinic_tokyo" required></div>
+    <div><label>施設名</label><br><input name="name" required></div>
+    <div><label>診療科</label><br><input name="department"></div>
+    <div><label>初期パスワード</label><br><input name="password" type="text" required></div>
+    <button type="submit">追加</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="section-title">登録済み施設</div>
+  <table>
+    <tr><th>施設ID</th><th>施設名</th><th>診療科</th><th>パスワード変更</th><th>操作</th></tr>
+    {% for institution_id, inst in institutions.items() %}
+      <tr>
+        <td style="word-break:break-all;">{{ institution_id }}{% if institution_id == current_institution_id %}<br><span class="success">現在操作中</span>{% endif %}</td>
+        <td>
+          <form method="POST" id="update-{{ institution_id }}">
+            <input type="hidden" name="action" value="update">
+            <input type="hidden" name="institution_id" value="{{ institution_id }}">
+            <input name="name" value="{{ inst.name }}">
+        </td>
+        <td><input name="department" value="{{ inst.department }}"></td>
+        <td><input name="password" placeholder="空欄なら変更しない"></td>
+        <td style="min-width:160px;">
+            <button type="submit">更新</button>
+          </form>
+          <form method="POST" style="margin-top:8px;">
+            <input type="hidden" name="action" value="switch">
+            <input type="hidden" name="institution_id" value="{{ institution_id }}">
+            <button type="submit">この施設を操作</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

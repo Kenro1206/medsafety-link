@@ -1,119 +1,51 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.5">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000; min-height: 14.0px}
-    span.s1 {font-kerning: none}
-  </style>
-</head>
-<body>
-<p class="p1"><span class="s1">{% extends "base.html" %}</span></p>
-<p class="p1"><span class="s1">{% block content %}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div class="card"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div style="margin-bottom: 14px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;strong&gt;登録待ちユーザー&lt;/strong&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="muted" style="margin-top:4px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>LINE でメッセージを送ってきた未登録ユーザーを、既存患者に紐付けます。</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;table&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th style="width: 180px;"&gt;時刻&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th style="width: 140px;"&gt;氏名候補&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th style="width: 240px;"&gt;LINE user_id&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th&gt;メッセージ&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th style="width: 240px;"&gt;紐付け&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/tr&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>{% if pending_users %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{% for r in pending_users %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td&gt;{{ r.timestamp }}&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td&gt;{{ r.patient_name if r.patient_name else '未取得' }}&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td style="word-break: break-all;"&gt;{{ r.line_user_id }}&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td style="white-space: pre-wrap;"&gt;{{ r.display_text }}&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{% if unlinked_patients %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;form method="POST" action="/admin/link"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;input type="hidden" name="line_user_id" value="{{ r.line_user_id }}"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;select name="patient_id" style="width:100%;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>{% for p in unlinked_patients %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;option value="{{ p.patient_id }}"&gt;{{ p.patient_id }} {{ p.name }}&lt;/option&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>{% endfor %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/select&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div style="margin-top:8px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;button type="submit"&gt;紐付け&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/form&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{% else %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;span class="muted"&gt;未紐付け患者がいません&lt;/span&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{% endif %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{% endfor %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>{% else %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td colspan="5" style="text-align:center;padding:20px;color:#666;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>現在、登録待ちユーザーはいません。</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>{% endif %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/table&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div class="card"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div style="margin-bottom: 14px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;strong&gt;患者一覧&lt;/strong&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="muted" style="margin-top:4px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>患者マスタに登録されている患者一覧です。LINE user_id が空欄の患者は未紐付けです。</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;table&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th style="width: 100px;"&gt;患者ID&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th style="width: 160px;"&gt;氏名&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th style="width: 140px;"&gt;電話番号&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th&gt;LINE user_id&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;th style="width: 120px;"&gt;状態&lt;/th&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/tr&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>{% if patients %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{% for p in patients %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td&gt;{{ p.patient_id }}&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td&gt;{{ p.name }}&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td&gt;{{ p.phone if p.phone else '未登録' }}&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td style="word-break: break-all;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{{ p.line_user_id if p.line_user_id else '' }}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{% if p.line_user_id %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;span style="color:green;font-weight:bold;"&gt;登録済み&lt;/span&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{% else %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;span style="color:#d93025;font-weight:bold;"&gt;未紐付け&lt;/span&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>{% endif %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{% endfor %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>{% else %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;td colspan="5" style="text-align:center;padding:20px;color:#666;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>患者データがありません。</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/td&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/tr&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>{% endif %}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/table&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">{% endblock %}</span></p>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+{% if message %}<div class="card success">{{ message }}</div>{% endif %}
+{% if error_message %}<div class="card error">{{ error_message }}</div>{% endif %}
+
+<div class="card">
+  <div class="section-title">患者の追加・更新</div>
+  <form method="POST" style="display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end;">
+    <div><label>患者ID</label><br><input name="patient_id" required></div>
+    <div><label>氏名</label><br><input name="name" required></div>
+    <div><label>電話番号</label><br><input name="phone"></div>
+    <div><label>LINE user_id</label><br><input name="line_user_id"></div>
+    <button type="submit">保存</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="section-title">登録待ちユーザー</div>
+  <table>
+    <tr><th>時刻</th><th>LINE user_id</th><th>メッセージ</th><th>紐付け</th></tr>
+    {% for r in pending_users %}
+      <tr>
+        <td>{{ r.timestamp }}</td><td style="word-break:break-all;">{{ r.line_user_id }}</td><td>{{ r.display_text }}</td>
+        <td>
+          {% if unlinked_patients %}
+          <form method="POST" action="/admin/link">
+            <input type="hidden" name="line_user_id" value="{{ r.line_user_id }}">
+            <select name="patient_id">{% for p in unlinked_patients %}<option value="{{ p.patient_id }}">{{ p.patient_id }} {{ p.name }}</option>{% endfor %}</select>
+            <button type="submit" style="margin-top:8px;">紐付け</button>
+          </form>
+          {% else %}<span class="muted">未紐付け患者がいません</span>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" style="text-align:center;color:#666;">現在、登録待ちユーザーはいません。</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <div class="section-title">患者一覧</div>
+  <table>
+    <tr><th>患者ID</th><th>氏名</th><th>電話番号</th><th>LINE user_id</th><th>状態</th></tr>
+    {% for p in patients %}
+      <tr><td>{{ p.patient_id }}</td><td>{{ p.name }}</td><td>{{ p.phone }}</td><td style="word-break:break-all;">{{ p.line_user_id }}</td><td>{% if p.line_user_id %}<span class="success">登録済み</span>{% else %}<span class="error">未紐付け</span>{% endif %}</td></tr>
+    {% else %}
+      <tr><td colspan="5" style="text-align:center;color:#666;">患者データがありません。</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

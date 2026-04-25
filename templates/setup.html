@@ -2,167 +2,41 @@
 {% set show_menu = false %}
 
 {% block content %}
-
 <div class="card" style="max-width: 960px;">
   <div class="section-title">初期セットアップ</div>
-  <div class="muted" style="margin-bottom: 16px;">
-    LINE と Google Sheets を使うための初期設定を行います。
-  </div>
+  <div class="muted" style="margin-bottom: 16px;">施設ID: {{ institution_id }}</div>
 
-  {% if message %}
-    <div class="success" style="margin-bottom: 14px;">{{ message }}</div>
-  {% endif %}
-
-  {% if error_message %}
-    <div class="error" style="margin-bottom: 14px;">{{ error_message }}</div>
-  {% endif %}
+  {% if message %}<div class="success" style="margin-bottom: 14px;">{{ message }}</div>{% endif %}
+  {% if error_message %}<div class="error" style="margin-bottom: 14px;">{{ error_message }}</div>{% endif %}
 
   <form method="POST" enctype="multipart/form-data">
-
-    <div class="section-title">病院情報</div>
-
-    <div class="form-row">
-      <label for="hospital_name">病院名</label><br>
-      <input id="hospital_name" type="text" name="hospital_name" value="{{ settings.hospital.name }}" required>
-    </div>
-
-    <div class="form-row">
-      <label for="department">診療科</label><br>
-      <input id="department" type="text" name="department" value="{{ settings.hospital.department }}" required>
-    </div>
-
-    <div class="form-row">
-      <label for="hospital_phone">電話番号</label><br>
-      <input id="hospital_phone" type="text" name="hospital_phone" value="{{ settings.hospital.phone }}">
-    </div>
+    <div class="section-title">施設情報</div>
+    <div class="form-row"><label for="hospital_name">病院名</label><br><input id="hospital_name" type="text" name="hospital_name" value="{{ institution.name }}" required></div>
+    <div class="form-row"><label for="department">診療科</label><br><input id="department" type="text" name="department" value="{{ institution.department }}" required></div>
+    <div class="form-row"><label for="hospital_phone">電話番号</label><br><input id="hospital_phone" type="text" name="hospital_phone" value="{{ institution.phone }}"></div>
 
     <div class="section-title">管理者設定</div>
+    <div class="form-row"><label for="admin_password">管理者パスワード</label><br><input id="admin_password" type="text" name="admin_password" value="{{ institution.password }}" required></div>
+    <div class="form-row"><label for="admin_ids">管理者LINE ID（カンマ区切り）</label><br><input id="admin_ids" type="text" name="admin_ids" value="{{ ','.join(institution.admins.line_user_ids) }}"></div>
 
-    <div class="form-row">
-      <label for="admin_password">管理者パスワード</label><br>
-      <input id="admin_password" type="text" name="admin_password" value="{{ settings.auth.admin_password }}" required>
-      <div class="muted">
-        ■ これは何？<br>
-        → 管理画面にログインするためのパスワードです。<br><br>
-
-        ■ 何に使う？<br>
-        → このアプリの設定や患者一覧、回答一覧を開くときに必要です。<br><br>
-
-        ■ おすすめ<br>
-        → 8文字以上の英数字混在にしてください。
-      </div>
-    </div>
-
-    <div class="form-row">
-      <label for="admin_ids">管理者LINE ID（カンマ区切り）</label><br>
-      <input id="admin_ids" type="text" name="admin_ids" value="{{ ','.join(settings.admins.line_user_ids) }}">
-      <div class="muted">
-        ■ これは何？<br>
-        → 医療者（あなた）の LINE ユーザーIDです。<br><br>
-
-        ■ 何に使う？<br>
-        → 患者から「CALL（緊急）」などの回答が来たときに通知を受け取るために使います。<br><br>
-
-        ■ どうやって調べる？<br>
-        → 下の候補一覧から選ぶか、LINE Developers の Webhook ログなどから確認します。
-      </div>
-
-      {% if settings.setup.candidate_admin_line_ids %}
-        <div style="margin-top: 14px; padding: 12px; background: #f8fbff; border: 1px solid #d9e7ff; border-radius: 8px;">
-          <div style="font-weight: bold; margin-bottom: 8px;">受信済みの候補LINE ID</div>
-          <div class="muted" style="margin-bottom: 10px;">
-            管理者本人がLINE公式アカウントへメッセージを送ると、ここに候補として表示されます。
+    {% if settings.setup.candidate_admin_line_ids %}
+      <div class="form-row">
+        <label>受信済みの候補LINE ID</label>
+        {% for uid in settings.setup.candidate_admin_line_ids %}
+          <div style="padding:10px;margin-top:8px;border:1px solid #ddd;border-radius:8px;background:white;">
+            <label style="display:block;word-break:break-all;"><input type="radio" name="admin_id_candidate" value="{{ uid }}"> {{ uid }}</label>
+            <a href="/setup/test_line_to/{{ uid }}"><button type="button" style="margin-top:8px;">このIDへテスト送信</button></a>
           </div>
-
-          {% for uid in settings.setup.candidate_admin_line_ids %}
-            <div style="padding:10px; margin-bottom:8px; border:1px solid #ddd; border-radius:8px; background:white;">
-              <label style="display:block; margin-bottom:8px; word-break:break-all;">
-                <input type="radio" name="admin_id_candidate" value="{{ uid }}"
-                  {% if settings.admins.line_user_ids and settings.admins.line_user_ids[0] == uid %}checked{% endif %}>
-                {{ uid }}
-              </label>
-
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <a href="/setup/test_line_to/{{ uid }}">
-                  <button type="button">このIDへテスト送信</button>
-                </a>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="muted" style="margin-top:10px;">
-          まだ候補LINE IDはありません。管理者本人がLINE公式アカウントにメッセージを送ってください。
-        </div>
-      {% endif %}
-    </div>
+        {% endfor %}
+      </div>
+    {% endif %}
 
     <div class="section-title">LINE設定</div>
-
-    <div class="form-row">
-      <label for="line_token">チャネルアクセストークン</label><br>
-      <input id="line_token" type="text" name="line_token" value="{{ settings.line.channel_access_token }}" required>
-      <div class="muted">
-        ■ これは何？<br>
-        → LINE公式アカウントがメッセージを送信するための鍵です。<br><br>
-
-        ■ 何に使う？<br>
-        → 患者へ安否確認メッセージを送るために使います。<br><br>
-
-        ■ どこで取得？<br>
-        → LINE Developers → 対象チャネル → Messaging API → チャネルアクセストークン<br><br>
-
-        ■ 注意<br>
-        → できれば長期アクセストークンを使用してください。
-      </div>
-    </div>
+    <div class="form-row"><label for="line_token">チャネルアクセストークン</label><br><input id="line_token" type="text" name="line_token" value="{{ institution.line.channel_access_token }}"></div>
 
     <div class="section-title">Google設定</div>
-
-    <div class="form-row">
-      <label for="service_account_file">サービスアカウントJSONファイル</label><br>
-      <input id="service_account_file" type="file" name="service_account_file" accept=".json">
-      <div class="muted">
-        ■ これは何？<br>
-        → Google Sheets にアクセスするための認証ファイルです。<br><br>
-
-        ■ 何に使う？<br>
-        → 患者情報、安否回答、ログなどをスプレッドシートに保存するために使います。<br><br>
-
-        ■ どこで取得？<br>
-        → Google Cloud → サービスアカウント → JSONキーを作成してダウンロードします。<br><br>
-
-        ■ 現在の設定値<br>
-        → <strong>{{ settings.google.service_account_file }}</strong><br><br>
-
-        ■ 注意<br>
-        → このファイルは認証情報なので、外部に漏れないように管理してください。
-      </div>
-
-      {% if not settings.google.service_account_file %}
-        <div class="error" style="margin-top:8px;">
-          Google連携には JSON ファイルのアップロードが必要です。
-        </div>
-      {% endif %}
-    </div>
-
-    <div class="form-row">
-      <label for="spreadsheet_id">スプレッドシートID</label><br>
-      <input id="spreadsheet_id" type="text" name="spreadsheet_id" value="{{ settings.google.spreadsheet_id }}" required>
-      <div class="muted">
-        ■ これは何？<br>
-        → データ保存先となる Google スプレッドシートの ID です。<br><br>
-
-        ■ 何に使う？<br>
-        → 患者情報、安否回答、モード設定などの保存先になります。<br><br>
-
-        ■ どこで確認？<br>
-        → Google Sheets の URL の <code>/d/</code> の後ろの文字列です。<br><br>
-
-        ■ 例<br>
-        → <code>https://docs.google.com/spreadsheets/d/ここがID/edit</code>
-      </div>
-    </div>
+    <div class="form-row"><label for="service_account_file">サービスアカウントJSONファイル</label><br><input id="service_account_file" type="file" name="service_account_file" accept=".json"><div class="muted">現在: {{ institution.google.service_account_file }}</div></div>
+    <div class="form-row"><label for="spreadsheet_id">スプレッドシートID</label><br><input id="spreadsheet_id" type="text" name="spreadsheet_id" value="{{ institution.google.spreadsheet_id }}"></div>
 
     <button type="submit">設定を保存</button>
   </form>
@@ -170,14 +44,11 @@
 
 <div class="card" style="max-width: 960px;">
   <div class="section-title">接続テスト</div>
-  <div class="muted" style="margin-bottom: 12px;">
-    保存後に、LINE と Google Sheets に正しく接続できるか確認してください。
-  </div>
-
   <div style="display:flex; gap:12px; flex-wrap:wrap;">
     <a href="/setup/test_line"><button type="button">LINE接続テスト</button></a>
     <a href="/setup/test_google"><button type="button">Google接続テスト</button></a>
+    <a href="/setup/init_google"><button type="button">Googleシート初期化</button></a>
+    <a href="/login"><button type="button">ログインへ</button></a>
   </div>
 </div>
-
 {% endblock %}

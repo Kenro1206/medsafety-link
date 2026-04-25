@@ -1,1 +1,5 @@
-service_account.json
+service_account*.json
+.DS_Store
+.env
+__pycache__/
+*.pyc
