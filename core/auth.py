@@ -3,11 +3,17 @@ from core.config_manager import load_settings
 
 
 def is_logged_in():
-    return session.get("logged_in", False) and session.get("institution_id")
+    institution_id = session.get("institution_id")
+    if not session.get("logged_in", False) or not institution_id:
+        return False
+
+    s = load_settings()
+    return institution_id in s.get("institutions", {})
 
 
 def require_login():
     if not is_logged_in():
+        session.clear()
         return redirect("/login")
     return None
 
