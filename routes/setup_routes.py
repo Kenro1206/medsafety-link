@@ -1,7 +1,7 @@
 import os
 from flask import request, render_template
 
-from core.config_manager import BASE_DIR, load_settings, save_settings
+from core.config_manager import SETTINGS_PATH, load_settings, save_settings
 from services.line_service import test_line_connection, push_text
 from services.sheets_service import ensure_spreadsheet_schema, get_service_account_email, get_system_mode
 
@@ -50,7 +50,9 @@ def register_setup_routes(app):
                 if uploaded and uploaded.filename:
                     if not uploaded.filename.lower().endswith(".json"):
                         raise ValueError("Googleサービスアカウントファイルは .json を選択してください。")
-                    path = os.path.join(BASE_DIR, f"service_account_{institution_id}.json")
+                    settings_dir = os.path.dirname(SETTINGS_PATH) or "."
+                    os.makedirs(settings_dir, exist_ok=True)
+                    path = os.path.join(settings_dir, f"service_account_{institution_id}.json")
                     uploaded.save(path)
                     institution["google"]["service_account_file"] = path
 

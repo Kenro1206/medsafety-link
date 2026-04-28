@@ -8,7 +8,7 @@
         "channel_access_token": ""
       },
       "google": {
-        "spreadsheet_id": "",
+        "spreadsheet_id": "1zulCDTJDJ_lBjhiGxYBay-CAvX57NdiOPa6SFITsC-0",
         "service_account_file": "./service_account.json"
       },
       "admins": {
