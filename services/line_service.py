@@ -34,7 +34,56 @@ def build_safety_quick_reply():
     }
 
 
-def push_text(to_user_id, text, with_safety_buttons=False):
+def build_safety_button_message(text):
+    return {
+        "type": "flex",
+        "altText": "安否確認に回答してください",
+        "contents": {
+            "type": "bubble",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "md",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": "安否確認",
+                        "weight": "bold",
+                        "size": "lg",
+                        "wrap": True
+                    },
+                    {
+                        "type": "text",
+                        "text": text,
+                        "size": "sm",
+                        "color": "#555555",
+                        "wrap": True
+                    }
+                ]
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "primary" if text_value == "1" else "secondary",
+                        "height": "sm",
+                        "action": {
+                            "type": "message",
+                            "label": label,
+                            "text": text_value
+                        }
+                    }
+                    for label, text_value in SAFETY_REPLY_OPTIONS
+                ]
+            }
+        }
+    }
+
+
+def push_messages(to_user_id, messages):
     token = get_line_token()
 
     if not token:
@@ -48,10 +97,7 @@ def push_text(to_user_id, text, with_safety_buttons=False):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}"
     }
-    message = {"type": "text", "text": text}
-    if with_safety_buttons:
-        message["quickReply"] = build_safety_quick_reply()
-    payload = {"to": to_user_id, "messages": [message]}
+    payload = {"to": to_user_id, "messages": messages}
 
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=15)
@@ -62,8 +108,15 @@ def push_text(to_user_id, text, with_safety_buttons=False):
         return False, f"LINE送信例外: {e}"
 
 
+def push_text(to_user_id, text, with_safety_buttons=False):
+    message = {"type": "text", "text": text}
+    if with_safety_buttons:
+        message["quickReply"] = build_safety_quick_reply()
+    return push_messages(to_user_id, [message])
+
+
 def push_safety_check(to_user_id, text):
-    return push_text(to_user_id, text, with_safety_buttons=True)
+    return push_messages(to_user_id, [build_safety_button_message(text)])
 
 
 def reply_text(reply_token, text):
