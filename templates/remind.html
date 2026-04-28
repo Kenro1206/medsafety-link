@@ -4,7 +4,10 @@
   <form method="POST" action="/admin/remind/send">
     <label>再送メッセージ</label><br>
     <textarea name="message" style="height:120px;">{{ default_message }}</textarea><br><br>
-    <button>未回答者へ再送</button>
+    <button>未回答者へ回答ボタン付きで再送</button>
+    <div class="muted" style="margin-top:10px;">
+      LINE上では安否確認の回答ボタンが表示されます。
+    </div>
   </form>
 </div>
 {% endblock %}

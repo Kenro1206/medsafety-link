@@ -4,7 +4,7 @@ from core.auth import require_login
 from core.config_manager import load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
 from core.utils import help_link
-from services.line_service import push_text
+from services.line_service import push_safety_check, push_text
 from services.sheets_service import (
     get_latest_responses,
     get_system_mode,
@@ -205,13 +205,45 @@ def register_admin_routes(app):
                 "patient_id": patient.get("patient_id", ""),
                 "name": patient.get("name", ""),
                 "phone": patient.get("phone", ""),
+                "line_user_id": patient.get("line_user_id", ""),
                 "timestamp": response.get("timestamp", "未回答"),
                 "answer_code": code or "NO_RESPONSE",
                 "answer_label": response.get("label", "未回答"),
                 "is_handled": handled,
                 "row_class": row_class,
             })
-        return render_template("responders.html", title="回答一覧", responders=rows)
+        return render_template(
+            "responders.html",
+            title="回答一覧",
+            responders=rows,
+            default_message=default_message("individual_default"),
+            safety_message=default_message("broadcast_default"),
+        )
+
+    @app.route("/admin/responders/message", methods=["POST"])
+    def responder_message():
+        auth = require_login()
+        if auth:
+            return auth
+
+        patient_id = request.form.get("patient_id", "").strip()
+        message = request.form.get("message", "").strip()
+        send_type = request.form.get("send_type", "text").strip()
+
+        if not message:
+            return redirect("/admin/responders")
+
+        patients = load_patients()
+        patient = next((p for p in patients if p.get("patient_id") == patient_id), None)
+        if not patient or not patient.get("line_user_id"):
+            return redirect("/admin/responders")
+
+        if send_type == "safety":
+            push_safety_check(patient.get("line_user_id"), message)
+        else:
+            push_text(patient.get("line_user_id"), message)
+
+        return redirect("/admin/responders")
 
     @app.route("/admin/responders/handle", methods=["POST"])
     def handle_responder():
@@ -242,7 +274,7 @@ def register_admin_routes(app):
         if auth:
             return auth
         message = request.form.get("message", "").strip()
-        return render_template("broadcast_result.html", title="一斉送信結果", **send_to_patients(load_patients(), message))
+        return render_template("broadcast_result.html", title="一斉送信結果", **send_to_patients(load_patients(), message, with_safety_buttons=True))
 
     @app.route("/admin/remind")
     def remind():
@@ -259,7 +291,7 @@ def register_admin_routes(app):
         message = request.form.get("message", "").strip()
         latest = get_latest_responses()
         targets = [p for p in load_patients() if p.get("line_user_id") and p.get("patient_id") not in latest]
-        return render_template("broadcast_result.html", title="再送結果", **send_to_patients(targets, message))
+        return render_template("broadcast_result.html", title="再送結果", **send_to_patients(targets, message, with_safety_buttons=True))
 
     @app.route("/admin/mode", methods=["GET", "POST"])
     def mode():
@@ -283,14 +315,17 @@ def register_admin_routes(app):
         }.get(topic, "ヘルプは準備中です。")
         return render_template("help.html", title="ヘルプ", body=body)
 
-    def send_to_patients(patients, message):
+    def send_to_patients(patients, message, with_safety_buttons=False):
         results = []
         success = 0
         fail = 0
         for patient in patients:
             if not patient.get("line_user_id"):
                 continue
-            ok, detail = push_text(patient.get("line_user_id"), message)
+            if with_safety_buttons:
+                ok, detail = push_safety_check(patient.get("line_user_id"), message)
+            else:
+                ok, detail = push_text(patient.get("line_user_id"), message)
             success += 1 if ok else 0
             fail += 0 if ok else 1
             results.append({"patient_id": patient.get("patient_id", ""), "name": patient.get("name", ""), "ok": ok, "detail": detail})

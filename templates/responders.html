@@ -8,7 +8,7 @@
     <span id="filterStatus" class="muted">（全件表示）</span>
   </div>
   <table id="responderTable">
-    <tr><th>患者ID</th><th>氏名</th><th>電話</th><th>時刻</th><th>回答</th><th>対応</th><th>操作</th></tr>
+    <tr><th>患者ID</th><th>氏名</th><th>電話</th><th>時刻</th><th>回答</th><th>対応</th><th>操作</th><th>個別送信</th></tr>
     {% for r in responders %}
     <tr class="{{ r.row_class }} responder-row" data-handled="{{ 'true' if r.is_handled else 'false' }}">
       <td>{{ r.patient_id }}</td><td>{{ r.name }}</td><td>{{ r.phone }}</td><td>{{ r.timestamp }}</td>
@@ -22,6 +22,21 @@
           <form method="POST" action="/admin/responders/handle"><input type="hidden" name="patient_id" value="{{ r.patient_id }}"><button>対応済</button></form>
           {% endif %}
         {% else %}<span class="muted">-</span>{% endif %}
+      </td>
+      <td style="min-width:260px;">
+        {% if r.line_user_id %}
+          <form method="POST" action="/admin/responders/message">
+            <input type="hidden" name="patient_id" value="{{ r.patient_id }}">
+            <textarea name="message" style="height:68px;">{{ default_message }}</textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+              <button name="send_type" value="text">個別送信</button>
+              <button name="send_type" value="safety">安否確認送信</button>
+            </div>
+            <div class="muted" style="margin-top:6px;">安否確認送信は回答ボタン付きで送ります。</div>
+          </form>
+        {% else %}
+          <span class="muted">LINE未登録</span>
+        {% endif %}
       </td>
     </tr>
     {% endfor %}

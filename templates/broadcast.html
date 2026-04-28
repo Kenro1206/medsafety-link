@@ -4,7 +4,10 @@
   <form method="POST" action="/admin/broadcast/send">
     <label>送信メッセージ</label><br>
     <textarea name="message" style="height:120px;">{{ default_message }}</textarea><br><br>
-    <button>登録済み患者に一斉送信</button>
+    <button>登録済み患者に回答ボタン付きで一斉送信</button>
+    <div class="muted" style="margin-top:10px;">
+      LINE上では「無事」「体調不良」「薬・インスリン不足」「低血糖が心配」「至急連絡希望」の回答ボタンが表示されます。
+    </div>
   </form>
 </div>
 {% endblock %}

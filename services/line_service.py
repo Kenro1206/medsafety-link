@@ -2,6 +2,14 @@ import requests
 from core.config_manager import load_settings
 from core.institution_context import get_current_institution
 
+SAFETY_REPLY_OPTIONS = [
+    ("無事", "1"),
+    ("体調不良", "2"),
+    ("薬・インスリン不足", "3"),
+    ("低血糖が心配", "4"),
+    ("至急連絡希望", "5"),
+]
+
 
 def get_line_token():
     institution = get_current_institution()
@@ -10,7 +18,23 @@ def get_line_token():
     return institution.get("line", {}).get("channel_access_token", "").strip()
 
 
-def push_text(to_user_id, text):
+def build_safety_quick_reply():
+    return {
+        "items": [
+            {
+                "type": "action",
+                "action": {
+                    "type": "message",
+                    "label": label,
+                    "text": text
+                }
+            }
+            for label, text in SAFETY_REPLY_OPTIONS
+        ]
+    }
+
+
+def push_text(to_user_id, text, with_safety_buttons=False):
     token = get_line_token()
 
     if not token:
@@ -24,7 +48,10 @@ def push_text(to_user_id, text):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}"
     }
-    payload = {"to": to_user_id, "messages": [{"type": "text", "text": text}]}
+    message = {"type": "text", "text": text}
+    if with_safety_buttons:
+        message["quickReply"] = build_safety_quick_reply()
+    payload = {"to": to_user_id, "messages": [message]}
 
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=15)
@@ -33,6 +60,10 @@ def push_text(to_user_id, text):
         return False, f"LINE送信失敗: status={res.status_code}, body={res.text}"
     except Exception as e:
         return False, f"LINE送信例外: {e}"
+
+
+def push_safety_check(to_user_id, text):
+    return push_text(to_user_id, text, with_safety_buttons=True)
 
 
 def reply_text(reply_token, text):
