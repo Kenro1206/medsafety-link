@@ -398,6 +398,22 @@ def register_admin_routes(app):
             "settings": "LINEチャネルアクセストークン、GoogleスプレッドシートID、管理者LINE IDを設定します。",
             "register": "未登録ユーザーのLINE user_idを患者マスタへ紐付けます。",
             "responders": "最新回答、緊急度、対応状況を確認します。",
+            "google_setup": """
+                <h3>Google Sheets連携手順</h3>
+                <ol>
+                  <li>Google Cloudでサービスアカウントを作成し、JSONキーをダウンロードします。</li>
+                  <li>MedSafety Linkの「設定」または「初期セットアップ」でJSONファイルをアップロードします。</li>
+                  <li>画面に表示される「スプレッドシート共有先メールアドレス」をコピーします。</li>
+                  <li>Googleスプレッドシートを開き、右上の「共有」を押します。</li>
+                  <li>コピーしたメールアドレスを貼り付け、権限を「編集者」にして共有します。</li>
+                  <li>スプレッドシートURLの /d/ と /edit の間の文字列をコピーします。</li>
+                  <li>MedSafety Linkの「スプレッドシートID」に貼り付けて保存します。</li>
+                  <li>「Google接続テスト」を押します。</li>
+                  <li>接続成功後、「Googleシート初期化」を押します。</li>
+                </ol>
+                <p><strong>403エラーが出る場合:</strong> 共有先メールアドレスがスプレッドシートに「編集者」として追加されているか確認してください。</p>
+                <p><strong>404エラーが出る場合:</strong> スプレッドシートIDが正しいか確認してください。</p>
+            """,
         }.get(topic, "ヘルプは準備中です。")
         return render_template("help.html", title="ヘルプ", body=body)
 

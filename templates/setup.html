@@ -72,6 +72,17 @@
     </div>
 
     <div class="section-title">Google設定</div>
+    <div style="padding:12px;border:1px solid #d9e7ff;background:#f8fbff;border-radius:8px;margin-bottom:16px;">
+      <strong>Google Sheets連携の手順</strong>
+      <ol style="margin-bottom:0;">
+        <li>Google CloudでサービスアカウントJSONを作成し、この画面でアップロードします。</li>
+        <li>保存後に表示される「共有先メールアドレス」をコピーします。</li>
+        <li>使いたいGoogleスプレッドシートを開き、右上の「共有」を押します。</li>
+        <li>共有先メールアドレスを貼り付け、権限を「編集者」にして共有します。</li>
+        <li>スプレッドシートURLの <code>/d/</code> と <code>/edit</code> の間をスプレッドシートIDとして入力します。</li>
+        <li>保存後、「Google接続テスト」→「Googleシート初期化」の順に押します。</li>
+      </ol>
+    </div>
     <div class="form-row">
       <label for="service_account_file">サービスアカウントJSONファイル</label><br>
       <input id="service_account_file" type="file" name="service_account_file" accept=".json">
@@ -83,7 +94,10 @@
     </div>
     <div class="form-row">
       <label>スプレッドシート共有先メールアドレス</label><br>
-      <input value="{{ service_account_email if service_account_email else 'JSON保存後に表示されます' }}" readonly>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="service_account_email" value="{{ service_account_email if service_account_email else 'JSON保存後に表示されます' }}" readonly>
+        <button type="button" onclick="copyText('service_account_email')">コピー</button>
+      </div>
       <div class="muted">
         Google Sheets 右上の「共有」から、このメールアドレスを<strong>編集者</strong>として追加してください。
         共有しないと「PERMISSION_DENIED」または403エラーになります。
@@ -112,4 +126,13 @@
     <a href="/login"><button type="button">ログインへ</button></a>
   </div>
 </div>
+<script>
+function copyText(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.select();
+  el.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(el.value);
+}
+</script>
 {% endblock %}
