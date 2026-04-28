@@ -1,6 +1,6 @@
 import re
 from flask import request, render_template, redirect, session
-from core.auth import require_login
+from core.auth import require_login, require_system_admin
 from core.config_manager import load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
 from core.utils import help_link
@@ -140,7 +140,7 @@ def register_admin_routes(app):
 
     @app.route("/admin/institutions", methods=["GET", "POST"])
     def institutions():
-        auth = require_login()
+        auth = require_system_admin()
         if auth:
             return auth
 
@@ -186,7 +186,6 @@ def register_admin_routes(app):
                     if institution_id not in s.get("institutions", {}):
                         raise ValueError("施設が見つかりません。")
                     session["institution_id"] = institution_id
-                    s["default_institution_id"] = institution_id
                     message = "操作対象の施設を切り替えました。"
 
                 else:

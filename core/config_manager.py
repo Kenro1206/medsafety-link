@@ -29,6 +29,7 @@ def get_default_settings():
         "business_hours": {"start": "08:30", "end": "17:15"},
         "holidays": [],
         "alerts": {"severe_codes": ["CALL", "INSULIN_OUT", "HYPO"]},
+        "system_admins": {"institution_ids": []},
         "rich_menu": {"normal_id": "", "disaster_id": ""},
         "messages": {
             "auto_reply_business": "ご連絡ありがとうございます。内容を確認し、必要に応じて対応いたします。",
