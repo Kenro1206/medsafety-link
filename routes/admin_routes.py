@@ -431,6 +431,14 @@ def register_admin_routes(app):
             "responders": "最新回答、緊急度、対応状況を確認します。",
             "google_setup": """
                 <h3>Google Sheets連携手順</h3>
+                <p>
+                  Google Cloud Console:
+                  <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">https://console.cloud.google.com/</a>
+                </p>
+                <p>
+                  サービスアカウント画面:
+                  <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener">https://console.cloud.google.com/iam-admin/serviceaccounts</a>
+                </p>
                 <ol>
                   <li>Google Cloudでサービスアカウントを作成し、JSONキーをダウンロードします。</li>
                   <li>MedSafety Linkの「設定」または「初期セットアップ」でJSONファイルをアップロードします。</li>
