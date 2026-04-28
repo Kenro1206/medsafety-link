@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <div class="section-title">運用状況</div>
+  <p><strong>施設ID:</strong> {{ institution_id }}　<strong>施設名:</strong> {{ institution.name }}　<strong>現在モード:</strong> {{ current_mode }}</p>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;">
+    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;"><div class="muted">患者数</div><div style="font-size:28px;font-weight:bold;">{{ total_patients }}</div></div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;"><div class="muted">LINE登録済</div><div style="font-size:28px;font-weight:bold;">{{ linked_count }}</div></div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;"><div class="muted">回答済</div><div style="font-size:28px;font-weight:bold;">{{ responded_count }}</div></div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;"><div class="muted">未回答</div><div style="font-size:28px;font-weight:bold;">{{ unresponded_count }}</div></div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;"><div class="muted">緊急未対応</div><div style="font-size:28px;font-weight:bold;color:#d93025;">{{ severe_count }}</div></div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;"><div class="muted">登録待ち</div><div style="font-size:28px;font-weight:bold;">{{ pending_count }}</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section-title">最新回答状況</div>
+  <table>
+    <tr><th>患者ID</th><th>氏名</th><th>電話</th><th>回答時刻</th><th>回答内容</th><th>対応</th></tr>
+    {% for r in latest_rows %}
+      <tr class="{{ r.row_class }}">
+        <td>{{ r.patient_id }}</td>
+        <td>{{ r.name }}</td>
+        <td>{{ r.phone }}</td>
+        <td>{{ r.timestamp }}</td>
+        <td><strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span></td>
+        <td>{% if r.handled %}<span class="success">対応済</span>{% elif r.code == 'NO_RESPONSE' %}<span class="muted">-</span>{% else %}<span class="error">未対応</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;color:#666;">患者データがありません。</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <div class="section-title">直近の回答履歴</div>
+  <table>
+    <tr><th>時刻</th><th>患者ID</th><th>氏名</th><th>種別</th><th>回答内容</th><th>対応</th></tr>
+    {% for r in recent_responses %}
+      <tr>
+        <td>{{ r.timestamp }}</td>
+        <td>{{ r.patient_id }}</td>
+        <td>{{ r.name }}</td>
+        <td>{{ r.event_type }}</td>
+        <td><strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span></td>
+        <td>{% if r.handled %}<span class="success">対応済</span>{% else %}<span class="error">未対応</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;color:#666;">回答履歴がありません。</td></tr>
+    {% endfor %}
+  </table>
+  <p><a href="/admin/responses">すべての回答履歴を見る</a></p>
+</div>
+
+{% endblock %}

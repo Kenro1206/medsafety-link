@@ -10,6 +10,7 @@ from services.sheets_service import (
     get_system_mode,
     load_patients,
     load_pending_users,
+    load_responses,
     save_patients,
     save_pending_users,
     set_latest_response_handled,
@@ -28,6 +29,79 @@ def register_admin_routes(app):
 
     def default_message(key):
         return load_settings().get("messages", {}).get(key, "")
+
+    def is_handled(response):
+        return str(response.get("handled", "")).upper() in ["TRUE", "済", "DONE", "1"]
+
+    def response_row_class(code, handled, severe_codes):
+        if code in severe_codes and not handled:
+            return "severe"
+        if code and not handled:
+            return "yellow"
+        return "safe-row"
+
+    @app.route("/admin/dashboard")
+    def dashboard():
+        auth = require_login()
+        if auth:
+            return auth
+
+        patients = safe_call(load_patients, [])
+        pending_users = safe_call(load_pending_users, [])
+        responses = safe_call(load_responses, [])
+        latest = safe_call(get_latest_responses, {})
+        current_mode = safe_call(get_system_mode, "NORMAL")
+        severe_codes = set(load_settings().get("alerts", {}).get("severe_codes", []))
+
+        linked_patients = [p for p in patients if p.get("line_user_id")]
+        responded_ids = set(latest.keys())
+        severe_unhandled = [
+            r for r in latest.values()
+            if r.get("code", "") in severe_codes and not is_handled(r)
+        ]
+        attention_unhandled = [
+            r for r in latest.values()
+            if r.get("code", "") and r.get("code", "") != "SAFE" and not is_handled(r)
+        ]
+
+        recent_responses = sorted(
+            responses,
+            key=lambda r: r.get("timestamp", ""),
+            reverse=True
+        )[:20]
+
+        latest_rows = []
+        for patient in patients:
+            response = latest.get(patient.get("patient_id", ""), {})
+            code = response.get("code", "")
+            handled = is_handled(response)
+            latest_rows.append({
+                "patient_id": patient.get("patient_id", ""),
+                "name": patient.get("name", ""),
+                "phone": patient.get("phone", ""),
+                "timestamp": response.get("timestamp", "未回答"),
+                "code": code or "NO_RESPONSE",
+                "label": response.get("label", "未回答"),
+                "handled": handled,
+                "row_class": response_row_class(code, handled, severe_codes),
+            })
+
+        return render_template(
+            "dashboard.html",
+            title="ダッシュボード",
+            institution_id=get_current_institution_id(),
+            institution=get_current_institution(),
+            current_mode=current_mode,
+            total_patients=len(patients),
+            linked_count=len(linked_patients),
+            responded_count=len(responded_ids),
+            unresponded_count=max(len(patients) - len(responded_ids), 0),
+            pending_count=len(pending_users),
+            severe_count=len(severe_unhandled),
+            attention_count=len(attention_unhandled),
+            latest_rows=latest_rows,
+            recent_responses=recent_responses,
+        )
 
     @app.route("/admin/settings")
     def admin_settings():
@@ -195,12 +269,8 @@ def register_admin_routes(app):
         for patient in patients:
             response = latest.get(patient.get("patient_id", ""), {})
             code = response.get("code", "")
-            handled = str(response.get("handled", "")).upper() in ["TRUE", "済", "DONE", "1"]
-            row_class = "safe-row"
-            if code in severe and not handled:
-                row_class = "severe"
-            elif code and not handled:
-                row_class = "yellow"
+            handled = is_handled(response)
+            row_class = response_row_class(code, handled, severe)
             rows.append({
                 "patient_id": patient.get("patient_id", ""),
                 "name": patient.get("name", ""),
@@ -218,6 +288,21 @@ def register_admin_routes(app):
             responders=rows,
             default_message=default_message("individual_default"),
             safety_message=default_message("broadcast_default"),
+        )
+
+    @app.route("/admin/responses")
+    def responses_history():
+        auth = require_login()
+        if auth:
+            return auth
+
+        responses = safe_call(load_responses, [])
+        responses = sorted(responses, key=lambda r: r.get("timestamp", ""), reverse=True)
+        return render_template(
+            "responses.html",
+            title="回答履歴",
+            responses=responses[:200],
+            total_count=len(responses),
         )
 
     @app.route("/admin/responders/message", methods=["POST"])

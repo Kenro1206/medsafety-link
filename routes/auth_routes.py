@@ -31,7 +31,7 @@ def register_auth_routes(app):
             else:
                 session["logged_in"] = True
                 session["institution_id"] = institution_id
-                response = make_response(redirect("/admin/settings"))
+                response = make_response(redirect("/admin/dashboard"))
                 if remember_institution:
                     response.set_cookie(
                         "last_institution_id",
