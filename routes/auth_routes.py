@@ -1,4 +1,4 @@
-from flask import request, session, redirect, render_template
+from flask import make_response, request, session, redirect, render_template
 from core.config_manager import load_settings
 
 
@@ -11,10 +11,13 @@ def register_auth_routes(app):
     @app.route("/login", methods=["GET", "POST"])
     def login():
         message = ""
+        saved_institution_id = request.cookies.get("last_institution_id", "").strip()
 
         if request.method == "POST":
             institution_id = request.form.get("institution_id", "").strip()
             password = request.form.get("password", "").strip()
+            remember_institution = request.form.get("remember_institution") == "on"
+            saved_institution_id = institution_id
 
             s = load_settings()
             institutions = s.get("institutions", {})
@@ -28,11 +31,24 @@ def register_auth_routes(app):
             else:
                 session["logged_in"] = True
                 session["institution_id"] = institution_id
-                return redirect("/admin/settings")
+                response = make_response(redirect("/admin/settings"))
+                if remember_institution:
+                    response.set_cookie(
+                        "last_institution_id",
+                        institution_id,
+                        max_age=60 * 60 * 24 * 180,
+                        httponly=True,
+                        samesite="Lax",
+                        secure=request.is_secure,
+                    )
+                else:
+                    response.delete_cookie("last_institution_id")
+                return response
 
         return render_template(
             "login.html",
             message=message,
+            saved_institution_id=saved_institution_id,
             show_menu=False
         )
 
