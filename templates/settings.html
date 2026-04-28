@@ -6,6 +6,8 @@
 <div class="card">
   <p><strong>ログイン中の施設ID:</strong> {{ institution_id }}</p>
   <p><strong>現在モード:</strong> {{ current_mode }}</p>
+  {% if message %}<div class="success" style="margin-bottom:14px;">{{ message }}</div>{% endif %}
+  {% if error_message %}<div class="error" style="margin-bottom:14px;">{{ error_message }}</div>{% endif %}
   <div class="muted" style="margin-bottom:16px;">
     この画面では、ログイン中の施設だけに適用されるLINE連携、Google Sheets連携、管理者通知先を設定します。
     多施設で利用する場合、施設ごとに別々のトークンやスプレッドシートIDを保存できます。

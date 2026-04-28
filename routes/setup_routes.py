@@ -68,7 +68,7 @@ def register_setup_routes(app):
             settings=s,
             institution_id=institution_id,
             institution=institution,
-            service_account_email=get_service_account_email(),
+            service_account_email=safe_get_service_account_email(),
             message=message,
             error_message=error_message
         )
@@ -114,3 +114,9 @@ def register_setup_routes(app):
             return render_template("setup_result.html", title="Google接続テスト", success=True, result_text=f"Google接続成功。system_mode の現在値: {mode}", back_url="/setup", settings=s)
         except Exception as e:
             return render_template("setup_result.html", title="Google接続テスト", success=False, result_text=f"Google接続テスト中にエラーが発生しました: {e}", back_url="/setup", settings=s)
+
+    def safe_get_service_account_email():
+        try:
+            return get_service_account_email()
+        except Exception:
+            return ""

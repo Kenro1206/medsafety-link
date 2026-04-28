@@ -118,6 +118,8 @@ def register_admin_routes(app):
             institution=get_current_institution(),
             current_mode=safe_call(get_system_mode, "NORMAL"),
             service_account_email=safe_call(get_service_account_email, ""),
+            message="",
+            error_message="",
             help_link=help_link
         )
 
@@ -128,29 +130,46 @@ def register_admin_routes(app):
             return auth
 
         institution_id = get_current_institution_id()
-        s = load_settings()
-        inst = s["institutions"][institution_id]
+        try:
+            s = load_settings()
+            inst = s["institutions"][institution_id]
 
-        inst["name"] = request.form.get("hospital_name", "").strip()
-        inst["department"] = request.form.get("department", "").strip()
-        inst["phone"] = request.form.get("hospital_phone", "").strip()
-        inst["password"] = request.form.get("password", "").strip() or inst.get("password", "admin")
-        inst["line"]["channel_access_token"] = request.form.get("line_token", "").strip()
-        inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()
-        inst["admins"]["line_user_ids"] = [x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()]
+            inst["name"] = request.form.get("hospital_name", "").strip()
+            inst["department"] = request.form.get("department", "").strip()
+            inst["phone"] = request.form.get("hospital_phone", "").strip()
+            inst["password"] = request.form.get("password", "").strip() or inst.get("password", "admin")
+            inst["line"]["channel_access_token"] = request.form.get("line_token", "").strip()
+            inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()
+            inst["admins"]["line_user_ids"] = [x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()]
 
-        uploaded = request.files.get("service_account_file")
-        if uploaded and uploaded.filename:
-            if not uploaded.filename.lower().endswith(".json"):
-                return redirect("/admin/settings")
-            settings_dir = os.path.dirname(SETTINGS_PATH) or "."
-            os.makedirs(settings_dir, exist_ok=True)
-            path = os.path.join(settings_dir, f"service_account_{institution_id}.json")
-            uploaded.save(path)
-            inst["google"]["service_account_file"] = path
+            uploaded = request.files.get("service_account_file")
+            if uploaded and uploaded.filename:
+                if not uploaded.filename.lower().endswith(".json"):
+                    raise ValueError("Googleサービスアカウントファイルは .json を選択してください。")
+                settings_dir = os.path.dirname(SETTINGS_PATH) or "."
+                os.makedirs(settings_dir, exist_ok=True)
+                path = os.path.join(settings_dir, f"service_account_{institution_id}.json")
+                uploaded.save(path)
+                inst["google"]["service_account_file"] = path
 
-        save_settings(s)
-        return redirect("/admin/settings")
+            save_settings(s)
+            message = "設定を保存しました。"
+            error_message = ""
+        except Exception as e:
+            message = ""
+            error_message = f"保存エラー: {e}"
+
+        return render_template(
+            "settings.html",
+            title="設定",
+            institution_id=get_current_institution_id(),
+            institution=get_current_institution(),
+            current_mode=safe_call(get_system_mode, "NORMAL"),
+            service_account_email=safe_call(get_service_account_email, ""),
+            message=message,
+            error_message=error_message,
+            help_link=help_link
+        )
 
     @app.route("/admin/institutions", methods=["GET", "POST"])
     def institutions():
