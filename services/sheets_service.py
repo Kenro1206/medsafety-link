@@ -42,6 +42,32 @@ def get_credentials():
     return Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
 
+def get_service_account_email():
+    json_str = os.getenv("GOOGLE_SERVICE_JSON", "").strip()
+    if json_str:
+        try:
+            return json.loads(json_str).get("client_email", "")
+        except Exception:
+            return ""
+
+    institution = get_current_institution()
+    service_account_file = ""
+    if institution:
+        service_account_file = institution.get("google", {}).get("service_account_file", "").strip()
+
+    if not service_account_file:
+        service_account_file = load_settings().get("google", {}).get("service_account_file", "").strip()
+
+    if not service_account_file or not os.path.exists(service_account_file):
+        return ""
+
+    try:
+        with open(service_account_file, "r", encoding="utf-8") as f:
+            return json.load(f).get("client_email", "")
+    except Exception:
+        return ""
+
+
 def get_authorized_session():
     from google.auth.transport.requests import AuthorizedSession
 
@@ -54,6 +80,14 @@ def sheets_api_request(method, path, **kwargs):
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{get_spreadsheet_id()}{path}"
     response = session.request(method, url, timeout=20, **kwargs)
     if response.status_code >= 400:
+        if response.status_code == 403:
+            email = get_service_account_email() or "サービスアカウントの client_email"
+            raise ValueError(
+                "Googleスプレッドシートへのアクセス権限がありません。"
+                f"スプレッドシート右上の「共有」から {email} を編集者として追加してください。"
+            )
+        if response.status_code == 404:
+            raise ValueError("Googleスプレッドシートが見つかりません。スプレッドシートIDが正しいか確認してください。")
         raise ValueError(f"Google Sheets API error: status={response.status_code}, body={response.text}")
     if response.text:
         return response.json()

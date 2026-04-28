@@ -3,7 +3,7 @@ from flask import request, render_template
 
 from core.config_manager import BASE_DIR, load_settings, save_settings
 from services.line_service import test_line_connection, push_text
-from services.sheets_service import ensure_spreadsheet_schema, get_system_mode
+from services.sheets_service import ensure_spreadsheet_schema, get_service_account_email, get_system_mode
 
 
 def register_setup_routes(app):
@@ -66,6 +66,7 @@ def register_setup_routes(app):
             settings=s,
             institution_id=institution_id,
             institution=institution,
+            service_account_email=get_service_account_email(),
             message=message,
             error_message=error_message
         )

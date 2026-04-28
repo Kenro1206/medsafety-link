@@ -82,6 +82,14 @@
       </div>
     </div>
     <div class="form-row">
+      <label>スプレッドシート共有先メールアドレス</label><br>
+      <input value="{{ service_account_email if service_account_email else 'JSON保存後に表示されます' }}" readonly>
+      <div class="muted">
+        Google Sheets 右上の「共有」から、このメールアドレスを<strong>編集者</strong>として追加してください。
+        共有しないと「PERMISSION_DENIED」または403エラーになります。
+      </div>
+    </div>
+    <div class="form-row">
       <label for="spreadsheet_id">スプレッドシートID</label><br>
       <input id="spreadsheet_id" type="text" name="spreadsheet_id" value="{{ institution.google.spreadsheet_id }}">
       <div class="muted">

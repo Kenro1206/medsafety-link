@@ -11,6 +11,7 @@ from services.sheets_service import (
     load_patients,
     load_pending_users,
     load_responses,
+    get_service_account_email,
     save_patients,
     save_pending_users,
     set_latest_response_handled,
@@ -115,6 +116,7 @@ def register_admin_routes(app):
             institution_id=get_current_institution_id(),
             institution=get_current_institution(),
             current_mode=safe_call(get_system_mode, "NORMAL"),
+            service_account_email=safe_call(get_service_account_email, ""),
             help_link=help_link
         )
 
