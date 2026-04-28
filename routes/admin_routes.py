@@ -1,7 +1,8 @@
+import os
 import re
 from flask import request, render_template, redirect, session
 from core.auth import require_login, require_system_admin
-from core.config_manager import load_settings, save_settings
+from core.config_manager import SETTINGS_PATH, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
 from core.utils import help_link
 from services.line_service import push_safety_check, push_text
@@ -137,6 +138,17 @@ def register_admin_routes(app):
         inst["line"]["channel_access_token"] = request.form.get("line_token", "").strip()
         inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()
         inst["admins"]["line_user_ids"] = [x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()]
+
+        uploaded = request.files.get("service_account_file")
+        if uploaded and uploaded.filename:
+            if not uploaded.filename.lower().endswith(".json"):
+                return redirect("/admin/settings")
+            settings_dir = os.path.dirname(SETTINGS_PATH) or "."
+            os.makedirs(settings_dir, exist_ok=True)
+            path = os.path.join(settings_dir, f"service_account_{institution_id}.json")
+            uploaded.save(path)
+            inst["google"]["service_account_file"] = path
+
         save_settings(s)
         return redirect("/admin/settings")
 

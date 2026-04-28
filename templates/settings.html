@@ -11,7 +11,7 @@
     多施設で利用する場合、施設ごとに別々のトークンやスプレッドシートIDを保存できます。
   </div>
 
-  <form method="POST" action="/admin/settings/save">
+  <form method="POST" action="/admin/settings/save" enctype="multipart/form-data">
 
     <div class="section-title">施設情報</div>
 
@@ -63,12 +63,22 @@
       <strong>Google Sheets連携の手順</strong>
       <ol style="margin-bottom:0;">
         <li>Google CloudでサービスアカウントJSONを作成します。</li>
-        <li>この画面または初期セットアップ画面でJSONファイルをアップロードします。</li>
+        <li>下の「サービスアカウントJSONファイル」でJSONファイルを選択して保存します。</li>
         <li>下に表示される「共有先メールアドレス」をコピーします。</li>
         <li>使いたいGoogleスプレッドシートを開き、右上の「共有」を押します。</li>
         <li>共有先メールアドレスを貼り付け、権限を「編集者」にして共有します。</li>
         <li>スプレッドシートURLの <code>/d/</code> と <code>/edit</code> の間をスプレッドシートIDとして入力します。</li>
       </ol>
+    </div>
+
+    <div class="form-row">
+      <label for="service_account_file">サービスアカウントJSONファイル</label><br>
+      <input id="service_account_file" type="file" name="service_account_file" accept=".json">
+      <div class="muted">
+        Google CloudからダウンロードしたJSONキーを選択してください。
+        保存後、この下の共有先メールアドレスがJSONの <code>client_email</code> に更新されます。<br>
+        現在の保存先: {{ institution.google.service_account_file }}
+      </div>
     </div>
 
     <div class="form-row">
