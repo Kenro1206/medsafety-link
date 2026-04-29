@@ -9,6 +9,7 @@ from services.line_service import push_safety_check, push_text
 from services.sheets_service import (
     get_latest_responses,
     get_service_account_email,
+    get_service_account_summary,
     get_spreadsheet_id,
     get_spreadsheet_titles,
     get_system_mode,
@@ -132,6 +133,7 @@ def register_admin_routes(app):
         if auth:
             return auth
 
+        summary = safe_call(get_service_account_summary, {})
         try:
             spreadsheet_id = get_spreadsheet_id()
             email = get_service_account_email()
@@ -143,6 +145,9 @@ def register_admin_routes(app):
                 "Google Sheets接続診断",
                 f"スプレッドシートID: {spreadsheet_id}",
                 f"サービスアカウント: {email if email else '未取得'}",
+                f"認証JSONの使用元: {summary.get('source', '未取得')}",
+                f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
+                f"秘密鍵ID: {summary.get('private_key_id', '未取得') or '未取得'}",
                 f"取得できたシート: {', '.join(titles) if titles else 'なし'}",
             ]
             if missing:
@@ -162,11 +167,19 @@ def register_admin_routes(app):
                 settings=load_settings(),
             )
         except Exception as e:
+            lines = [
+                "Google Sheets接続診断",
+                f"認証JSONの使用元: {summary.get('source', '未取得')}",
+                f"サービスアカウント: {summary.get('client_email', '未取得') or '未取得'}",
+                f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
+                f"秘密鍵ID: {summary.get('private_key_id', '未取得') or '未取得'}",
+                f"Google Sheetsを読み込めませんでした: {e}",
+            ]
             return render_template(
                 "setup_result.html",
                 title="Google接続診断",
                 success=False,
-                result_text=f"Google Sheetsを読み込めませんでした: {e}",
+                result_text="\n".join(lines),
                 back_url="/admin/settings",
                 settings=load_settings(),
             )

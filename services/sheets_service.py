@@ -75,6 +75,32 @@ def validate_service_account_json_file(path):
         return _validate_service_account_info(json.load(f))
 
 
+def get_service_account_summary():
+    service_account_file = _configured_service_account_file()
+    info = None
+    source = "未設定"
+
+    if service_account_file and os.path.exists(service_account_file):
+        source = "設定画面でアップロードされたJSON"
+        with open(service_account_file, "r", encoding="utf-8") as f:
+            info = json.load(f)
+    else:
+        env_info = _load_service_account_info_from_env()
+        if env_info:
+            source = "Render環境変数 GOOGLE_SERVICE_JSON"
+            info = env_info
+
+    if not info:
+        return {"source": source, "client_email": "", "project_id": "", "private_key_id": ""}
+
+    return {
+        "source": source,
+        "client_email": info.get("client_email", ""),
+        "project_id": info.get("project_id", ""),
+        "private_key_id": info.get("private_key_id", ""),
+    }
+
+
 def get_credentials():
     from google.oauth2.service_account import Credentials
 
