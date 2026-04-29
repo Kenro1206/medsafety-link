@@ -65,7 +65,7 @@ def patient_auto_reply_text(mode, label):
     if mode == "DISASTER":
         return f"回答を受け付けました: {label}"
 
-    if is_business_time(settings.get("business_hours", {})):
+    if is_business_time(settings.get("business_hours", {}), settings.get("holidays", [])):
         return f"回答を受け付けました: {label}"
 
     phone = institution.get("phone", "").strip()
