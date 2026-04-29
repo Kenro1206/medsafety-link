@@ -236,8 +236,11 @@ def register_admin_routes(app):
             inst["password"] = request.form.get("password", "").strip() or inst.get("password", "admin")
             old_line_token = inst["line"].get("channel_access_token", "").strip()
             new_line_token = request.form.get("line_token", "").strip()
+            manual_bot_user_id = request.form.get("line_bot_user_id", "").strip()
             inst["line"]["channel_access_token"] = new_line_token
-            if new_line_token != old_line_token:
+            if manual_bot_user_id:
+                inst["line"]["bot_user_id"] = manual_bot_user_id
+            elif new_line_token != old_line_token:
                 inst["line"]["bot_user_id"] = ""
             global_messages = s.get("messages", {})
             inst_messages = inst.setdefault("messages", {})
@@ -332,11 +335,18 @@ def register_admin_routes(app):
                 settings=load_settings(),
             )
         except Exception as e:
+            token_set = bool(inst.get("line", {}).get("channel_access_token", "").strip()) if inst else False
             return render_template(
                 "setup_result.html",
                 title="LINE接続診断",
                 success=False,
-                result_text=f"LINE接続診断に失敗しました: {e}",
+                result_text=(
+                    "LINE接続診断に失敗しました。\n"
+                    f"施設ID: {institution_id}\n"
+                    f"チャネルアクセストークン: {'設定済み' if token_set else '未設定'}\n"
+                    f"エラー: {e}\n"
+                    "設定画面で、この施設用のLINEチャネルアクセストークンを入力して保存してください。"
+                ),
                 back_url="/admin/settings",
                 settings=load_settings(),
             )

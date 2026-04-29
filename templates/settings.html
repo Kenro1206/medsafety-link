@@ -54,15 +54,24 @@
       <div class="muted">
         LINE公式アカウントから患者・管理者へメッセージを送信するための認証キーです。
         LINE Developers の対象チャネル → Messaging API → チャネルアクセストークンで取得します。
+        {% if institution.line.channel_access_token %}
+          <br><span class="success">この施設にはLINEチャネルアクセストークンが保存されています。</span>
+        {% else %}
+          <br><span class="error">この施設のLINEチャネルアクセストークンは未設定です。</span>
+        {% endif %}
       </div>
     </div>
 
     <div class="form-row">
-      <label>LINE Bot userId</label><br>
-      <input value="{{ institution.line.bot_user_id if institution.line.bot_user_id else 'LINE接続診断後に表示されます' }}" readonly>
+      <label>LINE destination / Bot userId</label><br>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="line_bot_user_id" name="line_bot_user_id" value="{{ institution.line.bot_user_id }}">
+        <button type="button" onclick="copyText('line_bot_user_id')">コピー</button>
+      </div>
       <div class="muted">
-        Webhookがどの施設のLINE公式アカウントから届いたかを判定するためのIDです。
-        チャネルアクセストークンを保存した後、LINE接続診断を実行してください。
+        LINE Webhookの <code>destination</code> と同じ値です。
+        Webhookがどの施設のLINE公式アカウントから届いたかを判定するために使います。
+        通常は、チャネルアクセストークンを保存した後にLINE接続診断を実行すると自動で入ります。
       </div>
     </div>
 
