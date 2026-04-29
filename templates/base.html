@@ -294,6 +294,7 @@
   <div class="card" style="padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <span class="muted">管理画面を開いている間、1分ごとに新着回答を確認します。</span>
     <button type="button" class="enable-sound-button">通知音を有効化</button>
+    <button type="button" class="disable-sound-button">通知音をオフ</button>
     <span class="notification-watch-status muted">通知音: 無効</span>
   </div>
   {% endif %}
@@ -309,7 +310,8 @@
     const storageKey = "medsafety_dashboard_status_" + institutionId;
     const soundKey = "medsafety_dashboard_sound_enabled";
     const statusLabels = Array.from(document.querySelectorAll(".notification-watch-status"));
-    const soundButtons = Array.from(document.querySelectorAll(".enable-sound-button"));
+    const enableSoundButtons = Array.from(document.querySelectorAll(".enable-sound-button"));
+    const disableSoundButtons = Array.from(document.querySelectorAll(".disable-sound-button"));
     let audioContext = null;
     let soundEnabled = localStorage.getItem(soundKey) === "1";
 
@@ -373,12 +375,20 @@
       }
     }
 
-    soundButtons.forEach(function(button) {
+    enableSoundButtons.forEach(function(button) {
       button.addEventListener("click", function() {
         soundEnabled = true;
         localStorage.setItem(soundKey, "1");
         playNoticeSound();
         setStatus("通知音: 有効");
+      });
+    });
+
+    disableSoundButtons.forEach(function(button) {
+      button.addEventListener("click", function() {
+        soundEnabled = false;
+        localStorage.setItem(soundKey, "0");
+        setStatus("通知音: 無効");
       });
     });
 
