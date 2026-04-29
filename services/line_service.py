@@ -18,6 +18,17 @@ def get_line_token():
     return institution.get("line", {}).get("channel_access_token", "").strip()
 
 
+def get_safety_reply_options():
+    institution = get_current_institution()
+    options = institution.get("safety_reply_options", []) if institution else []
+    if not options or len(options) != 5:
+        return SAFETY_REPLY_OPTIONS
+    return [
+        (option.get("label", label) or label, option.get("text", text) or text)
+        for option, (label, text) in zip(options, SAFETY_REPLY_OPTIONS)
+    ]
+
+
 def build_safety_quick_reply():
     return {
         "items": [
@@ -29,7 +40,7 @@ def build_safety_quick_reply():
                     "text": text
                 }
             }
-            for label, text in SAFETY_REPLY_OPTIONS
+            for label, text in get_safety_reply_options()
         ]
     }
 
@@ -76,7 +87,7 @@ def build_safety_button_message(text):
                             "text": text_value
                         }
                     }
-                    for label, text_value in SAFETY_REPLY_OPTIONS
+                    for label, text_value in get_safety_reply_options()
                 ]
             }
         }

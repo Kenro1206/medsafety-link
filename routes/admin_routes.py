@@ -253,6 +253,14 @@ def register_admin_routes(app):
                 request.form.get("individual_default", "").strip()
                 or global_messages.get("individual_default", "")
             )
+            default_options = s.get("safety_reply_options", [])
+            inst["safety_reply_options"] = []
+            for index in range(5):
+                fallback = default_options[index] if index < len(default_options) else {}
+                inst["safety_reply_options"].append({
+                    "label": request.form.get(f"safety_label_{index + 1}", "").strip() or fallback.get("label", ""),
+                    "text": str(index + 1),
+                })
             inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()
             inst["admins"]["line_user_ids"] = [x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()]
 
@@ -398,7 +406,8 @@ def register_admin_routes(app):
                         "line": {"channel_access_token": "", "bot_user_id": ""},
                         "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},
                         "admins": {"line_user_ids": []},
-                        "messages": load_settings().get("messages", {})
+                        "messages": load_settings().get("messages", {}),
+                        "safety_reply_options": load_settings().get("safety_reply_options", [])
                     }
                     message = "施設を追加しました。設定する場合は「この施設を操作」を押してください。"
 

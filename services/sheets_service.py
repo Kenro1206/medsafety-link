@@ -267,10 +267,62 @@ def save_pending_users(rows):
 
 
 def load_responses():
-    return rows_to_dicts(read_sheet(RESPONSES_RANGE))
+    rows = read_sheet(RESPONSES_RANGE)
+    responses = rows_to_dicts(rows)
+    patients = load_patients()
+    by_id = {p.get("patient_id", ""): p for p in patients if p.get("patient_id")}
+    by_name = {p.get("name", ""): p for p in patients if p.get("name")}
+    by_line = {p.get("line_user_id", ""): p for p in patients if p.get("line_user_id")}
+
+    normalized = []
+    for index, response in enumerate(responses, start=1):
+        row = rows[index] if index < len(rows) else []
+        item = dict(response)
+
+        patient_id = item.get("patient_id", "")
+        name = item.get("name", "")
+        line_user_id = item.get("line_user_id", "")
+
+        patient = by_id.get(patient_id) or by_line.get(line_user_id) or by_name.get(patient_id) or by_name.get(name)
+        if not patient and len(row) >= 6 and row[2] in by_line:
+            patient = by_line[row[2]]
+
+        legacy_shifted = (
+            len(row) >= 6
+            and patient_id not in by_id
+            and (patient_id in by_name or name in by_line or row[2] in by_line)
+        )
+        if legacy_shifted:
+            item["name"] = row[1] if len(row) > 1 else ""
+            item["line_user_id"] = row[2] if len(row) > 2 else ""
+            item["event_type"] = row[3] if len(row) > 3 else ""
+            item["code"] = row[4] if len(row) > 4 else ""
+            item["label"] = row[5] if len(row) > 5 else ""
+            item["handled"] = row[6] if len(row) > 6 else ""
+            patient = patient or by_line.get(item["line_user_id"]) or by_name.get(item["name"])
+
+        if patient:
+            item["patient_id"] = patient.get("patient_id", item.get("patient_id", ""))
+            item["name"] = patient.get("name", item.get("name", ""))
+            item["line_user_id"] = patient.get("line_user_id", item.get("line_user_id", ""))
+
+        if not item.get("label") and item.get("code"):
+            item["label"] = {
+                "SAFE": "無事",
+                "SICK": "体調不良",
+                "INSULIN_OUT": "薬・インスリン不足",
+                "HYPO": "低血糖が心配",
+                "CALL": "至急連絡希望",
+                "FREE_TEXT": "自由記述",
+            }.get(item.get("code"), item.get("code"))
+
+        normalized.append(item)
+
+    return normalized
 
 
 def append_response(patient, user_id, event_type, code, label):
+    update_sheet("responses!A1:H1", REQUIRED_SHEETS["responses"])
     append_sheet(RESPONSES_RANGE, [
         now_jst_iso(),
         patient.get("patient_id", ""),

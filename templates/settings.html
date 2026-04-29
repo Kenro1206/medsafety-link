@@ -97,6 +97,21 @@
       <textarea name="individual_default" style="height:90px;">{{ institution.messages.individual_default }}</textarea>
     </div>
 
+    <div class="form-row">
+      <label>安否確認ボタン表示名</label><br>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+        {% for option in institution.safety_reply_options %}
+          <div>
+            <div class="muted">ボタン{{ loop.index }}</div>
+            <input name="safety_label_{{ loop.index }}" value="{{ option.label }}">
+          </div>
+        {% endfor %}
+      </div>
+      <div class="muted">
+        LINE上に表示される回答ボタン名です。内部の回答番号は1〜5のままなので、回答判定は維持されます。
+      </div>
+    </div>
+
     <div class="section-title">Google設定</div>
 
     <div style="padding:12px;border:1px solid #d9e7ff;background:#f8fbff;border-radius:8px;margin-bottom:16px;">

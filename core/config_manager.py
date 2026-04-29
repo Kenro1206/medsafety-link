@@ -23,6 +23,16 @@ def _default_messages():
     }
 
 
+def _default_safety_reply_options():
+    return [
+        {"label": "無事", "text": "1"},
+        {"label": "体調不良", "text": "2"},
+        {"label": "薬・インスリン不足", "text": "3"},
+        {"label": "低血糖が心配", "text": "4"},
+        {"label": "至急連絡希望", "text": "5"},
+    ]
+
+
 def _default_institution():
     return {
         "name": "未設定",
@@ -35,7 +45,8 @@ def _default_institution():
             "spreadsheet_id": ""
         },
         "admins": {"line_user_ids": []},
-        "messages": _default_messages()
+        "messages": _default_messages(),
+        "safety_reply_options": _default_safety_reply_options()
     }
 
 
@@ -49,6 +60,7 @@ def get_default_settings():
         "system_admins": {"institution_ids": []},
         "rich_menu": {"normal_id": "", "disaster_id": ""},
         "messages": _default_messages(),
+        "safety_reply_options": _default_safety_reply_options(),
         "setup": {"candidate_admin_line_ids": []},
         "default_created_at": datetime.now().isoformat()
     }
@@ -88,6 +100,8 @@ def normalize_settings(data):
     for inst in data.get("institutions", {}).values():
         _merge_missing(inst, _default_institution())
         inst.setdefault("line", {}).setdefault("bot_user_id", "")
+        if not isinstance(inst.get("safety_reply_options"), list) or len(inst.get("safety_reply_options", [])) != 5:
+            inst["safety_reply_options"] = _default_safety_reply_options()
 
     default_id = data.get("default_institution_id")
     if default_id not in data.get("institutions", {}):
