@@ -21,12 +21,46 @@ ANSWER_MAP = {
     "call": ("CALL", "至急連絡希望"),
 }
 
+DEFAULT_ANSWER_CODES = ["SAFE", "SICK", "INSULIN_OUT", "HYPO", "CALL"]
+
+
+def get_configured_answer_map():
+    settings = load_settings()
+    institution = settings.get("institutions", {}).get(get_current_institution_id(), {})
+    options = institution.get("safety_reply_options") or settings.get("safety_reply_options", [])
+    answer_map = {}
+
+    for index, option in enumerate(options[:5]):
+        number = str(index + 1)
+        code = (option.get("code") or DEFAULT_ANSWER_CODES[index]).strip().upper()
+        label = (option.get("label") or ANSWER_MAP.get(number, (code, number))[1]).strip()
+        text_value = str(option.get("text") or number).strip()
+
+        answer_map[number] = (code, label)
+        if text_value:
+            answer_map[text_value] = (code, label)
+        if label:
+            answer_map[label] = (code, label)
+
+    return answer_map
+
 
 def classify_answer(text):
     value = (text or "").strip()
     lower = value.lower()
+    configured_map = get_configured_answer_map()
+
+    if value in configured_map:
+        return configured_map[value]
+
+    for key, answer in configured_map.items():
+        if key and not key.isdigit() and key in value:
+            return answer
+
     for key, answer in ANSWER_MAP.items():
-        if key in value or key in lower:
+        if key.isdigit() and value == key:
+            return answer
+        if not key.isdigit() and (key in value or key in lower):
             return answer
     return "FREE_TEXT", value[:80] if value else "自由記述"
 

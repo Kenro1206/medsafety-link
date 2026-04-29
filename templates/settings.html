@@ -107,17 +107,19 @@
     </div>
 
     <div class="form-row">
-      <label>安否確認ボタン表示名</label><br>
+      <label>安否確認ボタン・回答コード</label><br>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
         {% for option in institution.safety_reply_options %}
           <div>
             <div class="muted">ボタン{{ loop.index }}</div>
             <input name="safety_label_{{ loop.index }}" value="{{ option.label }}">
+            <div class="muted">回答コード</div>
+            <input name="safety_code_{{ loop.index }}" value="{{ option.code }}" style="font-size:12px;">
           </div>
         {% endfor %}
       </div>
       <div class="muted">
-        LINE上に表示される回答ボタン名です。内部の回答番号は1〜5のままなので、回答判定は維持されます。
+        LINE上のボタン名と、回答履歴に保存するコードです。内部の回答番号は1〜5のまま送受信されます。
       </div>
     </div>
 

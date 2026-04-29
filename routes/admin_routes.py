@@ -260,8 +260,10 @@ def register_admin_routes(app):
             inst["safety_reply_options"] = []
             for index in range(5):
                 fallback = default_options[index] if index < len(default_options) else {}
+                code = request.form.get(f"safety_code_{index + 1}", "").strip().upper()
                 inst["safety_reply_options"].append({
                     "label": request.form.get(f"safety_label_{index + 1}", "").strip() or fallback.get("label", ""),
+                    "code": code or fallback.get("code", ""),
                     "text": str(index + 1),
                 })
             inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()

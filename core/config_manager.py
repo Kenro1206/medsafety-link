@@ -25,11 +25,11 @@ def _default_messages():
 
 def _default_safety_reply_options():
     return [
-        {"label": "無事", "text": "1"},
-        {"label": "体調不良", "text": "2"},
-        {"label": "薬・インスリン不足", "text": "3"},
-        {"label": "低血糖が心配", "text": "4"},
-        {"label": "至急連絡希望", "text": "5"},
+        {"label": "無事", "text": "1", "code": "SAFE"},
+        {"label": "体調不良", "text": "2", "code": "SICK"},
+        {"label": "薬・インスリン不足", "text": "3", "code": "INSULIN_OUT"},
+        {"label": "低血糖が心配", "text": "4", "code": "HYPO"},
+        {"label": "至急連絡希望", "text": "5", "code": "CALL"},
     ]
 
 
@@ -75,6 +75,23 @@ def _merge_missing(target, defaults):
     return target
 
 
+def _normalize_safety_reply_options(options):
+    defaults = _default_safety_reply_options()
+    normalized = []
+    if not isinstance(options, list):
+        options = []
+
+    for index, fallback in enumerate(defaults):
+        option = options[index] if index < len(options) and isinstance(options[index], dict) else {}
+        normalized.append({
+            "label": option.get("label") or fallback["label"],
+            "text": str(option.get("text") or fallback["text"]),
+            "code": (option.get("code") or fallback["code"]).strip().upper(),
+        })
+
+    return normalized
+
+
 def normalize_settings(data):
     defaults = get_default_settings()
 
@@ -100,8 +117,9 @@ def normalize_settings(data):
     for inst in data.get("institutions", {}).values():
         _merge_missing(inst, _default_institution())
         inst.setdefault("line", {}).setdefault("bot_user_id", "")
-        if not isinstance(inst.get("safety_reply_options"), list) or len(inst.get("safety_reply_options", [])) != 5:
-            inst["safety_reply_options"] = _default_safety_reply_options()
+        inst["safety_reply_options"] = _normalize_safety_reply_options(inst.get("safety_reply_options"))
+
+    data["safety_reply_options"] = _normalize_safety_reply_options(data.get("safety_reply_options"))
 
     default_id = data.get("default_institution_id")
     if default_id not in data.get("institutions", {}):
