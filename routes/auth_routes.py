@@ -34,6 +34,9 @@ def register_auth_routes(app):
                 session["institution_id"] = institution_id
                 if is_system_admin_institution(institution_id):
                     session["system_admin_institution_id"] = institution_id
+                    operated_id = request.cookies.get("last_operated_institution_id", "").strip()
+                    if operated_id in institutions:
+                        session["institution_id"] = operated_id
                 response = make_response(redirect("/admin/dashboard"))
                 if remember_institution:
                     response.set_cookie(

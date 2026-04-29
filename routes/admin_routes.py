@@ -1,7 +1,7 @@
 import copy
 import os
 import re
-from flask import request, render_template, redirect, session, jsonify
+from flask import make_response, request, render_template, redirect, session, jsonify
 from core.auth import require_login, require_system_admin
 from core.config_manager import SETTINGS_PATH, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
@@ -400,6 +400,7 @@ def register_admin_routes(app):
         s = load_settings()
         message = ""
         error_message = ""
+        last_operated_institution_id = ""
 
         if request.method == "POST":
             action = request.form.get("action", "").strip()
@@ -442,6 +443,7 @@ def register_admin_routes(app):
                     if institution_id not in s.get("institutions", {}):
                         raise ValueError("施設が見つかりません。")
                     session["institution_id"] = institution_id
+                    last_operated_institution_id = institution_id
                     message = "操作対象の施設を切り替えました。"
 
                 else:
@@ -454,14 +456,26 @@ def register_admin_routes(app):
             except Exception as e:
                 error_message = str(e)
 
-        return render_template(
-            "institutions.html",
-            title="施設ID管理",
-            institutions=s.get("institutions", {}),
-            current_institution_id=get_current_institution_id(),
-            message=message,
-            error_message=error_message,
+        response = make_response(
+            render_template(
+                "institutions.html",
+                title="施設ID管理",
+                institutions=s.get("institutions", {}),
+                current_institution_id=get_current_institution_id(),
+                message=message,
+                error_message=error_message,
+            )
         )
+        if last_operated_institution_id:
+            response.set_cookie(
+                "last_operated_institution_id",
+                last_operated_institution_id,
+                max_age=60 * 60 * 24 * 180,
+                httponly=True,
+                samesite="Lax",
+                secure=request.is_secure,
+            )
+        return response
 
     @app.route("/admin/register", methods=["GET", "POST"])
     def register_patients():
