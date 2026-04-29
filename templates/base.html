@@ -209,6 +209,32 @@
       font-weight: bold;
     }
 
+    .mode-badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .mode-normal {
+      color: #188038;
+      background: #e6f4ea;
+      border: 1px solid #c9e6d0;
+    }
+
+    .mode-disaster {
+      color: #d93025;
+      background: #fce8e6;
+      border: 1px solid #f4c7c3;
+    }
+
+    .mode-unknown {
+      color: #5f6368;
+      background: #f1f3f4;
+      border: 1px solid #dadce0;
+    }
+
     @media (max-width: 768px) {
       body {
         margin: 10px;
@@ -240,6 +266,16 @@
   </div>
 
   {% if show_menu is not defined or show_menu %}
+  <div class="card" style="padding:10px 14px;">
+    <strong>現在のモード:</strong>
+    {% if global_current_mode == "DISASTER" %}
+      <span class="mode-badge mode-disaster">災害</span>
+    {% elif global_current_mode == "NORMAL" %}
+      <span class="mode-badge mode-normal">通常</span>
+    {% else %}
+      <span class="mode-badge mode-unknown">{{ global_current_mode or "未取得" }}</span>
+    {% endif %}
+  </div>
   <div class="menu">
     <a href="/admin/dashboard">ダッシュボード</a> |
     <a href="/admin/register">患者登録</a> |
