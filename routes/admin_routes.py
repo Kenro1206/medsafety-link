@@ -400,8 +400,7 @@ def register_admin_routes(app):
                         "admins": {"line_user_ids": []},
                         "messages": load_settings().get("messages", {})
                     }
-                    session["institution_id"] = institution_id
-                    message = "施設を追加し、操作対象を切り替えました。"
+                    message = "施設を追加しました。設定する場合は「この施設を操作」を押してください。"
 
                 elif action == "update":
                     institution_id = request.form.get("institution_id", "").strip()
