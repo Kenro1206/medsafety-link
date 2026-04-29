@@ -2,7 +2,7 @@ from flask import request
 
 from core.institution_context import get_all_institutions, get_current_institution_id, use_institution
 from core.config_manager import load_settings, save_settings
-from core.time_utils import now_jst_iso
+from core.time_utils import is_business_time, now_jst_iso
 from services.line_service import get_severe_codes, notify_admin, reply_text
 from services.sheets_service import append_response, load_patients, load_pending_users, save_pending_users, get_system_mode
 
@@ -57,6 +57,19 @@ def find_patient_by_line_user_id(user_id):
     return None, None
 
 
+def patient_auto_reply_text(mode, label):
+    settings = load_settings()
+    messages = settings.get("messages", {})
+
+    if mode == "DISASTER":
+        return f"回答を受け付けました: {label}"
+
+    if is_business_time(settings.get("business_hours", {})):
+        return f"回答を受け付けました: {label}"
+
+    return messages.get("auto_reply_after_hours", "")
+
+
 def register_webhook_routes(app):
     @app.route("/callback", methods=["POST"])
     def callback():
@@ -103,7 +116,7 @@ def register_webhook_routes(app):
                         notify_admin(patient, code, label)
 
                     if reply_token:
-                        reply_text(reply_token, f"回答を受け付けました: {label}")
+                        reply_text(reply_token, patient_auto_reply_text(mode, label))
             except Exception as e:
                 print("[WEBHOOK ERROR]", e)
 
