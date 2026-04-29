@@ -19,6 +19,7 @@ from services.sheets_service import (
     save_pending_users,
     set_latest_response_handled,
     set_system_mode,
+    validate_service_account_json_file,
 )
 
 
@@ -196,7 +197,10 @@ def register_admin_routes(app):
                 settings_dir = os.path.dirname(SETTINGS_PATH) or "."
                 os.makedirs(settings_dir, exist_ok=True)
                 path = os.path.join(settings_dir, f"service_account_{institution_id}.json")
-                uploaded.save(path)
+                upload_path = f"{path}.upload"
+                uploaded.save(upload_path)
+                validate_service_account_json_file(upload_path)
+                os.replace(upload_path, path)
                 inst["google"]["service_account_file"] = path
 
             save_settings(s)

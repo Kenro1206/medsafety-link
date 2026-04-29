@@ -20,56 +20,91 @@ REQUIRED_SHEETS = {
 }
 
 
+def _looks_like_default_service_account_path(path):
+    return path in {"./service_account.json", "service_account.json"}
+
+
+def _configured_service_account_file():
+    institution = get_current_institution()
+    if institution:
+        service_account_file = institution.get("google", {}).get("service_account_file", "").strip()
+        if service_account_file and (
+            os.path.exists(service_account_file)
+            or not _looks_like_default_service_account_path(service_account_file)
+        ):
+            return service_account_file
+
+    service_account_file = load_settings().get("google", {}).get("service_account_file", "").strip()
+    if service_account_file and (
+        os.path.exists(service_account_file)
+        or not _looks_like_default_service_account_path(service_account_file)
+    ):
+        return service_account_file
+
+    return ""
+
+
+def _load_service_account_info_from_env():
+    json_str = os.getenv("GOOGLE_SERVICE_JSON", "").strip()
+    if not json_str:
+        return None
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            "Render環境変数 GOOGLE_SERVICE_JSON のJSON形式が正しくありません。"
+            "設定画面でサービスアカウントJSONをアップロードするか、環境変数を削除/修正してください。"
+        ) from e
+
+
+def _validate_service_account_info(info):
+    required = ["type", "project_id", "private_key_id", "private_key", "client_email"]
+    missing = [key for key in required if not info.get(key)]
+    if missing:
+        raise ValueError(f"サービスアカウントJSONに必要な項目がありません: {', '.join(missing)}")
+    if info.get("type") != "service_account":
+        raise ValueError("アップロードされたJSONはサービスアカウントJSONではありません。")
+    private_key = info.get("private_key", "")
+    if "BEGIN PRIVATE KEY" not in private_key or "END PRIVATE KEY" not in private_key:
+        raise ValueError("サービスアカウントJSONの private_key が正しくありません。JSONを作り直して再アップロードしてください。")
+    return info
+
+
+def validate_service_account_json_file(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return _validate_service_account_info(json.load(f))
+
+
 def get_credentials():
     from google.oauth2.service_account import Credentials
 
-    json_str = os.getenv("GOOGLE_SERVICE_JSON", "").strip()
-    if json_str:
-        info = json.loads(json_str)
-        return Credentials.from_service_account_info(info, scopes=SCOPES)
-
-    institution = get_current_institution()
-    service_account_file = ""
-    if institution:
-        service_account_file = institution.get("google", {}).get("service_account_file", "").strip()
-
-    if not service_account_file:
-        service_account_file = load_settings().get("google", {}).get("service_account_file", "").strip()
-
-    if not service_account_file:
-        raise ValueError("Google認証情報が未設定です。GOOGLE_SERVICE_JSON または service_account_file を設定してください。")
-
+    service_account_file = _configured_service_account_file()
     if not os.path.exists(service_account_file):
-        raise ValueError(
-            "GoogleサービスアカウントJSONファイルが見つかりません。"
-            "設定画面でサービスアカウントJSONを再アップロードして保存してください。"
-        )
+        env_info = _load_service_account_info_from_env()
+        if env_info:
+            return Credentials.from_service_account_info(_validate_service_account_info(env_info), scopes=SCOPES)
+        if service_account_file:
+            raise ValueError(
+                "GoogleサービスアカウントJSONファイルが見つかりません。"
+                "設定画面でサービスアカウントJSONを再アップロードして保存してください。"
+            )
+        raise ValueError("Google認証情報が未設定です。設定画面でサービスアカウントJSONをアップロードしてください。")
 
+    validate_service_account_json_file(service_account_file)
     return Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
 
 def get_service_account_email():
-    json_str = os.getenv("GOOGLE_SERVICE_JSON", "").strip()
-    if json_str:
+    service_account_file = _configured_service_account_file()
+    if service_account_file and os.path.exists(service_account_file):
         try:
-            return json.loads(json_str).get("client_email", "")
+            with open(service_account_file, "r", encoding="utf-8") as f:
+                return json.load(f).get("client_email", "")
         except Exception:
             return ""
-
-    institution = get_current_institution()
-    service_account_file = ""
-    if institution:
-        service_account_file = institution.get("google", {}).get("service_account_file", "").strip()
-
-    if not service_account_file:
-        service_account_file = load_settings().get("google", {}).get("service_account_file", "").strip()
-
-    if not service_account_file or not os.path.exists(service_account_file):
-        return ""
-
     try:
-        with open(service_account_file, "r", encoding="utf-8") as f:
-            return json.load(f).get("client_email", "")
+        env_info = _load_service_account_info_from_env()
+        return env_info.get("client_email", "") if env_info else ""
     except Exception:
         return ""
 
@@ -84,7 +119,16 @@ def get_authorized_session():
 def sheets_api_request(method, path, **kwargs):
     session = get_authorized_session()
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{get_spreadsheet_id()}{path}"
-    response = session.request(method, url, timeout=20, **kwargs)
+    try:
+        response = session.request(method, url, timeout=20, **kwargs)
+    except Exception as e:
+        if "invalid_grant" in str(e) or "Invalid JWT Signature" in str(e):
+            raise ValueError(
+                "Google認証に失敗しました。サービスアカウントJSONの秘密鍵が無効です。"
+                "Google Cloudでこのサービスアカウントの新しいキーJSONを作成し、設定画面で再アップロードしてください。"
+                "Renderの環境変数 GOOGLE_SERVICE_JSON を使っている場合は、古い値を削除または更新してください。"
+            ) from e
+        raise
     if response.status_code >= 400:
         if response.status_code == 403:
             email = get_service_account_email() or "サービスアカウントの client_email"

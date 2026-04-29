@@ -3,7 +3,12 @@ from flask import request, render_template
 
 from core.config_manager import SETTINGS_PATH, load_settings, save_settings
 from services.line_service import test_line_connection, push_text
-from services.sheets_service import ensure_spreadsheet_schema, get_service_account_email, get_system_mode
+from services.sheets_service import (
+    ensure_spreadsheet_schema,
+    get_service_account_email,
+    get_system_mode,
+    validate_service_account_json_file,
+)
 
 
 def register_setup_routes(app):
@@ -53,7 +58,10 @@ def register_setup_routes(app):
                     settings_dir = os.path.dirname(SETTINGS_PATH) or "."
                     os.makedirs(settings_dir, exist_ok=True)
                     path = os.path.join(settings_dir, f"service_account_{institution_id}.json")
-                    uploaded.save(path)
+                    upload_path = f"{path}.upload"
+                    uploaded.save(upload_path)
+                    validate_service_account_json_file(upload_path)
+                    os.replace(upload_path, path)
                     institution["google"]["service_account_file"] = path
 
                 save_settings(s)
