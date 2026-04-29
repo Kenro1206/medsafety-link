@@ -379,11 +379,12 @@ def register_admin_routes(app):
                         "department": request.form.get("department", "").strip(),
                         "phone": "",
                         "password": request.form.get("password", "").strip() or "admin",
-                        "line": {"channel_access_token": ""},
+                        "line": {"channel_access_token": "", "bot_user_id": ""},
                         "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},
                         "admins": {"line_user_ids": []}
                     }
-                    message = "施設を追加しました。"
+                    session["institution_id"] = institution_id
+                    message = "施設を追加し、操作対象を切り替えました。"
 
                 elif action == "update":
                     institution_id = request.form.get("institution_id", "").strip()
