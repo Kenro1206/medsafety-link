@@ -132,9 +132,17 @@ def sheets_api_request(method, path, **kwargs):
     if response.status_code >= 400:
         if response.status_code == 403:
             email = get_service_account_email() or "サービスアカウントの client_email"
+            if "has not been used" in response.text or "disabled" in response.text:
+                raise ValueError(
+                    "Google Sheets APIが有効になっていない可能性があります。"
+                    "Google Cloud Consoleで、このサービスアカウントのプロジェクトの Google Sheets API を有効にしてください。"
+                    f" 詳細: {response.text}"
+                )
             raise ValueError(
                 "Googleスプレッドシートへのアクセス権限がありません。"
                 f"スプレッドシート右上の「共有」から {email} を編集者として追加してください。"
+                f" すでに共有済みの場合は、設定画面のスプレッドシートIDが共有したシートのURLと一致しているか確認してください。"
+                f" 詳細: {response.text}"
             )
         if response.status_code == 404:
             raise ValueError("Googleスプレッドシートが見つかりません。スプレッドシートIDが正しいか確認してください。")
