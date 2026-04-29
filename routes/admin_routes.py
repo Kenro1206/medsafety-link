@@ -4,6 +4,7 @@ from flask import request, render_template, redirect, session
 from core.auth import require_login, require_system_admin
 from core.config_manager import SETTINGS_PATH, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
+from core.time_utils import format_jst_timestamp
 from core.utils import help_link
 from services.line_service import push_safety_check, push_text
 from services.sheets_service import (
@@ -46,6 +47,14 @@ def register_admin_routes(app):
             return "yellow"
         return "safe-row"
 
+    def with_jst_timestamps(rows):
+        formatted = []
+        for row in rows:
+            item = dict(row)
+            item["timestamp"] = format_jst_timestamp(item.get("timestamp", ""))
+            formatted.append(item)
+        return formatted
+
     @app.route("/admin/dashboard")
     def dashboard():
         auth = require_login()
@@ -75,6 +84,7 @@ def register_admin_routes(app):
             key=lambda r: r.get("timestamp", ""),
             reverse=True
         )[:20]
+        recent_responses = with_jst_timestamps(recent_responses)
 
         latest_rows = []
         for patient in patients:
@@ -85,7 +95,7 @@ def register_admin_routes(app):
                 "patient_id": patient.get("patient_id", ""),
                 "name": patient.get("name", ""),
                 "phone": patient.get("phone", ""),
-                "timestamp": response.get("timestamp", "未回答"),
+                "timestamp": format_jst_timestamp(response.get("timestamp", "未回答")),
                 "code": code or "NO_RESPONSE",
                 "label": response.get("label", "未回答"),
                 "handled": handled,
@@ -338,7 +348,7 @@ def register_admin_routes(app):
                 error_message = f"保存エラー: {e}"
 
         patients = safe_call(load_patients, [])
-        pending_users = safe_call(load_pending_users, [])
+        pending_users = with_jst_timestamps(safe_call(load_pending_users, []))
         unlinked_patients = [p for p in patients if not p.get("line_user_id")]
         return render_template("register.html", title="患者登録", patients=patients, pending_users=pending_users, unlinked_patients=unlinked_patients, message=message, error_message=error_message)
 
@@ -379,7 +389,7 @@ def register_admin_routes(app):
                 "name": patient.get("name", ""),
                 "phone": patient.get("phone", ""),
                 "line_user_id": patient.get("line_user_id", ""),
-                "timestamp": response.get("timestamp", "未回答"),
+                "timestamp": format_jst_timestamp(response.get("timestamp", "未回答")),
                 "answer_code": code or "NO_RESPONSE",
                 "answer_label": response.get("label", "未回答"),
                 "is_handled": handled,
@@ -401,6 +411,7 @@ def register_admin_routes(app):
 
         responses = safe_call(load_responses, [])
         responses = sorted(responses, key=lambda r: r.get("timestamp", ""), reverse=True)
+        responses = with_jst_timestamps(responses)
         return render_template(
             "responses.html",
             title="回答履歴",

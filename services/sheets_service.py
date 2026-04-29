@@ -1,10 +1,10 @@
 import json
 import os
-from datetime import datetime
 from urllib.parse import quote
 
 from core.config_manager import load_settings
 from core.institution_context import get_current_institution
+from core.time_utils import now_jst_iso
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 PATIENTS_RANGE = "patients!A:D"
@@ -272,7 +272,7 @@ def load_responses():
 
 def append_response(patient, user_id, event_type, code, label):
     append_sheet(RESPONSES_RANGE, [
-        datetime.now().isoformat(timespec="seconds"),
+        now_jst_iso(),
         patient.get("patient_id", ""),
         patient.get("name", ""),
         user_id,

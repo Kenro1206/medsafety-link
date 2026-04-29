@@ -1,8 +1,8 @@
-from datetime import datetime
 from flask import request
 
 from core.institution_context import get_all_institutions, get_current_institution_id, use_institution
 from core.config_manager import load_settings, save_settings
+from core.time_utils import now_jst_iso
 from services.line_service import get_severe_codes, notify_admin, reply_text
 from services.sheets_service import append_response, load_patients, load_pending_users, save_pending_users, get_system_mode
 
@@ -77,7 +77,7 @@ def register_webhook_routes(app):
                         pending = load_pending_users()
                         if not any(r.get("line_user_id") == user_id for r in pending):
                             pending.append({
-                                "timestamp": datetime.now().isoformat(timespec="seconds"),
+                                "timestamp": now_jst_iso(),
                                 "line_user_id": user_id,
                                 "patient_name": "",
                                 "display_text": text
