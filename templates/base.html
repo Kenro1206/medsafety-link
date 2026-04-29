@@ -324,6 +324,9 @@
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) return;
       audioContext = audioContext || new AudioContextClass();
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
 
       function playPing(offset) {
         const startAt = audioContext.currentTime + offset;
@@ -379,8 +382,8 @@
       button.addEventListener("click", function() {
         soundEnabled = true;
         localStorage.setItem(soundKey, "1");
-        playNoticeSound();
         setStatus("通知音: 有効");
+        setTimeout(playNoticeSound, 0);
       });
     });
 
