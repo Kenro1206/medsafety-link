@@ -82,24 +82,52 @@ def patient_auto_reply_text(mode, label):
     return messages.get("auto_reply_after_hours", "").replace("{phone_part}", phone_part)
 
 
+def record_webhook_status(status):
+    settings = load_settings()
+    history = settings.setdefault("webhook_status", {}).setdefault("recent", [])
+    history.insert(0, status)
+    del history[20:]
+    save_settings(settings)
+
+
 def register_webhook_routes(app):
     @app.route("/callback", methods=["POST"])
     def callback():
         body = request.get_json(force=True, silent=True) or {}
 
         for event in body.get("events", []):
+            status = {
+                "timestamp": now_jst_iso(),
+                "destination": body.get("destination", ""),
+                "event_type": event.get("type", ""),
+                "message_type": event.get("message", {}).get("type", ""),
+                "line_user_id": event.get("source", {}).get("userId", ""),
+                "text": "",
+                "destination_institution_id": "",
+                "matched_institution_id": "",
+                "patient_id": "",
+                "action": "",
+                "reply_result": "",
+                "error": "",
+            }
             try:
                 text = get_event_text(event)
+                status["text"] = text[:80] if text else ""
                 if not text:
+                    status["action"] = "ignored_non_text_event"
+                    record_webhook_status(status)
                     continue
 
                 user_id = event.get("source", {}).get("userId", "")
                 reply_token = event.get("replyToken")
                 destination_institution_id = find_institution_by_destination(body.get("destination", ""))
                 institution_id, patient = find_patient_by_line_user_id(user_id)
+                status["destination_institution_id"] = destination_institution_id or ""
+                status["matched_institution_id"] = institution_id or ""
 
                 if not patient:
                     target_institution_id = destination_institution_id or get_current_institution_id()
+                    status["matched_institution_id"] = target_institution_id or ""
                     with use_institution(target_institution_id):
                         pending = load_pending_users()
                         if not any(r.get("line_user_id") == user_id for r in pending):
@@ -110,6 +138,9 @@ def register_webhook_routes(app):
                                 "display_text": text
                             })
                             save_pending_users(pending)
+                            status["action"] = "saved_pending_user"
+                        else:
+                            status["action"] = "pending_user_already_exists"
 
                         s = load_settings()
                         candidates = s.setdefault("setup", {}).setdefault("candidate_admin_line_ids", [])
@@ -118,20 +149,28 @@ def register_webhook_routes(app):
                             save_settings(s)
 
                         if reply_token:
-                            reply_text(reply_token, "メッセージを受け付けました。管理者が登録確認を行います。")
+                            ok, result = reply_text(reply_token, "メッセージを受け付けました。管理者が登録確認を行います。")
+                            status["reply_result"] = f"{ok}: {result}"
+                    record_webhook_status(status)
                     continue
 
                 with use_institution(institution_id):
+                    status["patient_id"] = patient.get("patient_id", "")
                     code, label = classify_answer(text)
                     mode = get_system_mode()
                     append_response(patient, user_id, mode, code, label)
+                    status["action"] = f"saved_response:{code}"
 
                     if code in get_severe_codes():
                         notify_admin(patient, code, label)
 
                     if reply_token:
-                        reply_text(reply_token, patient_auto_reply_text(mode, label))
+                        ok, result = reply_text(reply_token, patient_auto_reply_text(mode, label))
+                        status["reply_result"] = f"{ok}: {result}"
+                record_webhook_status(status)
             except Exception as e:
+                status["error"] = str(e)
+                record_webhook_status(status)
                 print("[WEBHOOK ERROR]", e)
 
         return "OK", 200

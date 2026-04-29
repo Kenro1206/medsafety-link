@@ -317,6 +317,43 @@ def register_admin_routes(app):
                 settings=load_settings(),
             )
 
+    @app.route("/admin/webhook/status")
+    def webhook_status():
+        auth = require_login()
+        if auth:
+            return auth
+
+        settings = load_settings()
+        recent = settings.get("webhook_status", {}).get("recent", [])
+        lines = ["Webhook受信診断", f"記録件数: {len(recent)}"]
+        if not recent:
+            lines.append("まだWebhook受信記録がありません。LINEから公式アカウントへ「テスト」と送ってから再確認してください。")
+        for idx, row in enumerate(recent[:10], start=1):
+            lines.extend([
+                "",
+                f"#{idx}",
+                f"時刻: {row.get('timestamp', '')}",
+                f"destination: {row.get('destination', '')}",
+                f"イベント: {row.get('event_type', '')}/{row.get('message_type', '')}",
+                f"LINE user_id: {row.get('line_user_id', '')}",
+                f"本文: {row.get('text', '')}",
+                f"destination判定施設: {row.get('destination_institution_id', '') or '未判定'}",
+                f"保存先/一致施設: {row.get('matched_institution_id', '') or '未判定'}",
+                f"患者ID: {row.get('patient_id', '') or '未登録'}",
+                f"処理: {row.get('action', '')}",
+                f"返信結果: {row.get('reply_result', '') or 'なし'}",
+                f"エラー: {row.get('error', '') or 'なし'}",
+            ])
+
+        return render_template(
+            "setup_result.html",
+            title="Webhook受信診断",
+            success=True,
+            result_text="\n".join(lines),
+            back_url="/admin/settings",
+            settings=settings,
+        )
+
     @app.route("/admin/institutions", methods=["GET", "POST"])
     def institutions():
         auth = require_system_admin()
