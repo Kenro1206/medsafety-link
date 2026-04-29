@@ -8,11 +8,13 @@ from core.utils import help_link
 from services.line_service import push_safety_check, push_text
 from services.sheets_service import (
     get_latest_responses,
+    get_service_account_email,
+    get_spreadsheet_id,
+    get_spreadsheet_titles,
     get_system_mode,
     load_patients,
     load_pending_users,
     load_responses,
-    get_service_account_email,
     save_patients,
     save_pending_users,
     set_latest_response_handled,
@@ -122,6 +124,51 @@ def register_admin_routes(app):
             error_message="",
             help_link=help_link
         )
+
+    @app.route("/admin/google/status")
+    def google_status():
+        auth = require_login()
+        if auth:
+            return auth
+
+        try:
+            spreadsheet_id = get_spreadsheet_id()
+            email = get_service_account_email()
+            titles = get_spreadsheet_titles()
+            required = ["patients", "pending_users", "responses", "system_mode"]
+            missing = [name for name in required if name not in titles]
+
+            lines = [
+                "Google Sheets接続診断",
+                f"スプレッドシートID: {spreadsheet_id}",
+                f"サービスアカウント: {email if email else '未取得'}",
+                f"取得できたシート: {', '.join(titles) if titles else 'なし'}",
+            ]
+            if missing:
+                lines.append(f"不足しているシート: {', '.join(missing)}")
+                lines.append("「Googleシート初期化」を実行してください。")
+                success = False
+            else:
+                lines.append("必要なシートは揃っています。")
+                success = True
+
+            return render_template(
+                "setup_result.html",
+                title="Google接続診断",
+                success=success,
+                result_text="\n".join(lines),
+                back_url="/admin/settings",
+                settings=load_settings(),
+            )
+        except Exception as e:
+            return render_template(
+                "setup_result.html",
+                title="Google接続診断",
+                success=False,
+                result_text=f"Google Sheetsを読み込めませんでした: {e}",
+                back_url="/admin/settings",
+                settings=load_settings(),
+            )
 
     @app.route("/admin/settings/save", methods=["POST"])
     def admin_settings_save():

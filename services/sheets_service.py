@@ -39,6 +39,12 @@ def get_credentials():
     if not service_account_file:
         raise ValueError("Google認証情報が未設定です。GOOGLE_SERVICE_JSON または service_account_file を設定してください。")
 
+    if not os.path.exists(service_account_file):
+        raise ValueError(
+            "GoogleサービスアカウントJSONファイルが見つかりません。"
+            "設定画面でサービスアカウントJSONを再アップロードして保存してください。"
+        )
+
     return Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
 
@@ -107,6 +113,11 @@ def get_spreadsheet_id():
         raise ValueError("スプレッドシートIDが未設定です。")
 
     return spreadsheet_id
+
+
+def get_spreadsheet_titles():
+    spreadsheet = sheets_api_request("GET", "", params={"fields": "sheets.properties.title"})
+    return [s["properties"]["title"] for s in spreadsheet.get("sheets", [])]
 
 
 def read_sheet(range_name):
