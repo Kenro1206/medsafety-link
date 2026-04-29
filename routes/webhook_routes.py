@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import request
 
+from core.institution_context import get_all_institutions, get_current_institution_id, use_institution
 from core.config_manager import load_settings, save_settings
 from services.line_service import get_severe_codes, notify_admin, reply_text
 from services.sheets_service import append_response, load_patients, load_pending_users, save_pending_users, get_system_mode
@@ -30,6 +31,32 @@ def classify_answer(text):
     return "FREE_TEXT", value[:80] if value else "自由記述"
 
 
+def get_event_text(event):
+    event_type = event.get("type")
+    if event_type == "message" and event.get("message", {}).get("type") == "text":
+        return event.get("message", {}).get("text", "")
+
+    if event_type == "postback":
+        data = event.get("postback", {}).get("data", "")
+        if data.startswith("answer="):
+            return data.split("=", 1)[1]
+        return data
+
+    return ""
+
+
+def find_patient_by_line_user_id(user_id):
+    for institution_id in get_all_institutions():
+        try:
+            with use_institution(institution_id):
+                patient = next((p for p in load_patients() if p.get("line_user_id") == user_id), None)
+                if patient:
+                    return institution_id, patient
+        except Exception as e:
+            print(f"[WEBHOOK INSTITUTION SKIP] {institution_id}: {e}")
+    return None, None
+
+
 def register_webhook_routes(app):
     @app.route("/callback", methods=["POST"])
     def callback():
@@ -37,45 +64,46 @@ def register_webhook_routes(app):
 
         for event in body.get("events", []):
             try:
-                if event.get("type") != "message" or event.get("message", {}).get("type") != "text":
+                text = get_event_text(event)
+                if not text:
                     continue
 
                 user_id = event.get("source", {}).get("userId", "")
                 reply_token = event.get("replyToken")
-                text = event.get("message", {}).get("text", "")
-                patients = load_patients()
-                patient = next((p for p in patients if p.get("line_user_id") == user_id), None)
+                institution_id, patient = find_patient_by_line_user_id(user_id)
 
                 if not patient:
-                    pending = load_pending_users()
-                    if not any(r.get("line_user_id") == user_id for r in pending):
-                        pending.append({
-                            "timestamp": datetime.now().isoformat(timespec="seconds"),
-                            "line_user_id": user_id,
-                            "patient_name": "",
-                            "display_text": text
-                        })
-                        save_pending_users(pending)
+                    with use_institution(get_current_institution_id()):
+                        pending = load_pending_users()
+                        if not any(r.get("line_user_id") == user_id for r in pending):
+                            pending.append({
+                                "timestamp": datetime.now().isoformat(timespec="seconds"),
+                                "line_user_id": user_id,
+                                "patient_name": "",
+                                "display_text": text
+                            })
+                            save_pending_users(pending)
 
-                    s = load_settings()
-                    candidates = s.setdefault("setup", {}).setdefault("candidate_admin_line_ids", [])
-                    if user_id and user_id not in candidates:
-                        candidates.append(user_id)
-                        save_settings(s)
+                        s = load_settings()
+                        candidates = s.setdefault("setup", {}).setdefault("candidate_admin_line_ids", [])
+                        if user_id and user_id not in candidates:
+                            candidates.append(user_id)
+                            save_settings(s)
 
-                    if reply_token:
-                        reply_text(reply_token, "メッセージを受け付けました。管理者が登録確認を行います。")
+                        if reply_token:
+                            reply_text(reply_token, "メッセージを受け付けました。管理者が登録確認を行います。")
                     continue
 
-                code, label = classify_answer(text)
-                mode = get_system_mode()
-                append_response(patient, user_id, mode, code, label)
+                with use_institution(institution_id):
+                    code, label = classify_answer(text)
+                    mode = get_system_mode()
+                    append_response(patient, user_id, mode, code, label)
 
-                if code in get_severe_codes():
-                    notify_admin(patient, code, label)
+                    if code in get_severe_codes():
+                        notify_admin(patient, code, label)
 
-                if reply_token:
-                    reply_text(reply_token, f"回答を受け付けました: {label}")
+                    if reply_token:
+                        reply_text(reply_token, f"回答を受け付けました: {label}")
             except Exception as e:
                 print("[WEBHOOK ERROR]", e)
 
