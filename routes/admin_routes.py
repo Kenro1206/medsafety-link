@@ -1,3 +1,4 @@
+import copy
 import os
 import re
 from flask import request, render_template, redirect, session, jsonify
@@ -410,6 +411,7 @@ def register_admin_routes(app):
                     if institution_id in s.get("institutions", {}):
                         raise ValueError("この施設IDはすでに登録されています。")
 
+                    default_settings = load_settings()
                     s.setdefault("institutions", {})[institution_id] = {
                         "name": request.form.get("name", "").strip() or institution_id,
                         "department": request.form.get("department", "").strip(),
@@ -418,10 +420,10 @@ def register_admin_routes(app):
                         "line": {"channel_access_token": "", "bot_user_id": ""},
                         "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},
                         "admins": {"line_user_ids": []},
-                        "messages": load_settings().get("messages", {}),
-                        "safety_reply_options": load_settings().get("safety_reply_options", [])
+                        "messages": copy.deepcopy(default_settings.get("messages", {})),
+                        "safety_reply_options": copy.deepcopy(default_settings.get("safety_reply_options", []))
                     }
-                    message = "施設を追加しました。設定する場合は「この施設を操作」を押してください。"
+                    message = f"施設「{institution_id}」を追加しました。設定する場合は「この施設を操作」を押してください。"
 
                 elif action == "update":
                     institution_id = request.form.get("institution_id", "").strip()
@@ -447,6 +449,8 @@ def register_admin_routes(app):
 
                 save_settings(s)
                 s = load_settings()
+                if action == "create" and institution_id not in s.get("institutions", {}):
+                    raise RuntimeError("施設追加後の保存確認に失敗しました。設定保存先を確認してください。")
             except Exception as e:
                 error_message = str(e)
 

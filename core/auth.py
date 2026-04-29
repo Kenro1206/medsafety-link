@@ -29,9 +29,14 @@ def get_system_admin_institution_ids():
     return [default_id] if default_id else []
 
 
+def is_system_admin_institution(institution_id):
+    return bool(institution_id and institution_id in get_system_admin_institution_ids())
+
+
 def can_manage_institutions():
     institution_id = session.get("institution_id")
-    return bool(institution_id and institution_id in get_system_admin_institution_ids())
+    admin_institution_id = session.get("system_admin_institution_id")
+    return is_system_admin_institution(institution_id) or is_system_admin_institution(admin_institution_id)
 
 
 def require_system_admin():

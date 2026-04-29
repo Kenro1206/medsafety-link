@@ -1,5 +1,6 @@
 from flask import make_response, request, session, redirect, render_template
 from core.config_manager import load_settings
+from core.auth import is_system_admin_institution
 
 
 def register_auth_routes(app):
@@ -31,6 +32,8 @@ def register_auth_routes(app):
             else:
                 session["logged_in"] = True
                 session["institution_id"] = institution_id
+                if is_system_admin_institution(institution_id):
+                    session["system_admin_institution_id"] = institution_id
                 response = make_response(redirect("/admin/dashboard"))
                 if remember_institution:
                     response.set_cookie(
