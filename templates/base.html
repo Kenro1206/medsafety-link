@@ -255,10 +255,95 @@
     {% endif %}
     <a href="/logout">ログアウト</a>
   </div>
+  <div class="card" style="padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <span class="muted">管理画面を開いている間、1分ごとに新着回答を確認します。</span>
+    <button type="button" class="enable-sound-button">通知音を有効化</button>
+    <span class="notification-watch-status muted">通知音: 無効</span>
+  </div>
   {% endif %}
 
   <h2>{{ title }}</h2>
 
   {% block content %}{% endblock %}
+  {% if show_menu is not defined or show_menu %}
+  <script>
+  (function() {
+    const statusUrl = "/admin/dashboard/status";
+    const institutionId = "{{ current_institution_id or 'default' }}";
+    const storageKey = "medsafety_dashboard_status_" + institutionId;
+    const soundKey = "medsafety_dashboard_sound_enabled";
+    const statusLabels = Array.from(document.querySelectorAll(".notification-watch-status"));
+    const soundButtons = Array.from(document.querySelectorAll(".enable-sound-button"));
+    let audioContext = null;
+    let soundEnabled = localStorage.getItem(soundKey) === "1";
+
+    function setStatus(text) {
+      statusLabels.forEach(function(label) { label.textContent = text; });
+    }
+
+    function playNoticeSound() {
+      if (!soundEnabled) return;
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      audioContext = audioContext || new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+      gain.gain.setValueAtTime(0.001, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.25, audioContext.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.45);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.5);
+    }
+
+    async function fetchStatus() {
+      const response = await fetch(statusUrl, {cache: "no-store"});
+      if (!response.ok) throw new Error("status failed");
+      return response.json();
+    }
+
+    function isNewerStatus(previous, current) {
+      if (!previous) return false;
+      if ((current.response_count || 0) > (previous.response_count || 0)) return true;
+      return current.latest_timestamp && current.latest_timestamp !== previous.latest_timestamp;
+    }
+
+    async function checkNotifications() {
+      try {
+        const current = await fetchStatus();
+        const previous = JSON.parse(localStorage.getItem(storageKey) || "null");
+        localStorage.setItem(storageKey, JSON.stringify(current));
+        if (isNewerStatus(previous, current)) {
+          playNoticeSound();
+          setStatus("新着回答を検知しました");
+          if (window.location.pathname === "/admin/dashboard") {
+            setTimeout(function() { window.location.reload(); }, soundEnabled ? 700 : 100);
+          }
+          return;
+        }
+        setStatus(soundEnabled ? "通知音: 有効" : "通知音: 無効");
+      } catch (e) {
+        setStatus("新着確認に失敗しました");
+      }
+    }
+
+    soundButtons.forEach(function(button) {
+      button.addEventListener("click", function() {
+        soundEnabled = true;
+        localStorage.setItem(soundKey, "1");
+        playNoticeSound();
+        setStatus("通知音: 有効");
+      });
+    });
+
+    setStatus(soundEnabled ? "通知音: 有効" : "通知音: 無効");
+    checkNotifications();
+    setInterval(checkNotifications, 60000);
+  })();
+  </script>
+  {% endif %}
 </body>
 </html>

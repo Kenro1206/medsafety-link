@@ -8,6 +8,7 @@ from routes.webhook_routes import register_webhook_routes
 from routes.setup_routes import register_setup_routes
 from core.auth import can_manage_institutions
 from core.config_manager import load_settings
+from core.institution_context import get_current_institution_id
 
 load_dotenv()
 
@@ -17,7 +18,10 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-me-in-production")
 
 @app.context_processor
 def inject_permissions():
-    return {"can_manage_institutions": can_manage_institutions()}
+    return {
+        "can_manage_institutions": can_manage_institutions(),
+        "current_institution_id": get_current_institution_id(),
+    }
 
 
 @app.route("/healthz")
