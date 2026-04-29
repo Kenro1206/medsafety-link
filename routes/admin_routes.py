@@ -6,7 +6,7 @@ from core.config_manager import SETTINGS_PATH, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
 from core.time_utils import format_jst_timestamp
 from core.utils import help_link
-from services.line_service import push_safety_check, push_text
+from services.line_service import get_bot_info, push_safety_check, push_text
 from services.sheets_service import (
     get_latest_responses,
     get_service_account_email,
@@ -232,7 +232,11 @@ def register_admin_routes(app):
             inst["department"] = request.form.get("department", "").strip()
             inst["phone"] = request.form.get("hospital_phone", "").strip()
             inst["password"] = request.form.get("password", "").strip() or inst.get("password", "admin")
-            inst["line"]["channel_access_token"] = request.form.get("line_token", "").strip()
+            old_line_token = inst["line"].get("channel_access_token", "").strip()
+            new_line_token = request.form.get("line_token", "").strip()
+            inst["line"]["channel_access_token"] = new_line_token
+            if new_line_token != old_line_token:
+                inst["line"]["bot_user_id"] = ""
             inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()
             inst["admins"]["line_user_ids"] = [x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()]
 
@@ -267,6 +271,51 @@ def register_admin_routes(app):
             error_message=error_message,
             help_link=help_link
         )
+
+    @app.route("/admin/line/status")
+    def line_status():
+        auth = require_login()
+        if auth:
+            return auth
+
+        institution_id = get_current_institution_id()
+        s = load_settings()
+        inst = s.get("institutions", {}).get(institution_id)
+        try:
+            ok, result = get_bot_info()
+            if not ok:
+                raise ValueError(result)
+
+            bot_user_id = result.get("userId", "")
+            if bot_user_id:
+                inst.setdefault("line", {})["bot_user_id"] = bot_user_id
+                save_settings(s)
+
+            lines = [
+                "LINE接続診断",
+                f"施設ID: {institution_id}",
+                f"Bot userId: {bot_user_id or '未取得'}",
+                f"表示名: {result.get('displayName', '未取得')}",
+                "Webhook URL: https://medsafety-link.onrender.com/callback",
+                "このBot userIdを保存しました。患者さんからのWebhookを、この施設の登録待ちユーザーへ保存します。",
+            ]
+            return render_template(
+                "setup_result.html",
+                title="LINE接続診断",
+                success=True,
+                result_text="\n".join(lines),
+                back_url="/admin/settings",
+                settings=load_settings(),
+            )
+        except Exception as e:
+            return render_template(
+                "setup_result.html",
+                title="LINE接続診断",
+                success=False,
+                result_text=f"LINE接続診断に失敗しました: {e}",
+                back_url="/admin/settings",
+                settings=load_settings(),
+            )
 
     @app.route("/admin/institutions", methods=["GET", "POST"])
     def institutions():

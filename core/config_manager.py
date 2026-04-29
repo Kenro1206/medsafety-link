@@ -18,7 +18,7 @@ def _default_institution():
         "department": "未設定",
         "phone": "",
         "password": "admin",
-        "line": {"channel_access_token": ""},
+        "line": {"channel_access_token": "", "bot_user_id": ""},
         "google": {
             "service_account_file": "./service_account.json",
             "spreadsheet_id": ""
@@ -82,6 +82,7 @@ def normalize_settings(data):
 
     for inst in data.get("institutions", {}).values():
         _merge_missing(inst, _default_institution())
+        inst.setdefault("line", {}).setdefault("bot_user_id", "")
 
     default_id = data.get("default_institution_id")
     if default_id not in data.get("institutions", {}):

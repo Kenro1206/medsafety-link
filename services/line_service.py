@@ -147,13 +147,25 @@ def test_line_connection():
     if not token:
         return False, "LINEチャネルアクセストークンが未設定です。"
 
+    ok, result = get_bot_info()
+    if ok:
+        return True, f"LINE接続成功: {result}"
+    return False, result
+
+
+def get_bot_info():
+    token = get_line_token()
+
+    if not token:
+        return False, "LINEチャネルアクセストークンが未設定です。"
+
     url = "https://api.line.me/v2/bot/info"
     headers = {"Authorization": f"Bearer {token}"}
 
     try:
         res = requests.get(url, headers=headers, timeout=15)
         if res.status_code == 200:
-            return True, f"LINE接続成功: {res.text}"
+            return True, res.json()
         return False, f"LINE接続失敗: status={res.status_code}, body={res.text}"
     except Exception as e:
         return False, f"LINE接続テスト例外: {e}"

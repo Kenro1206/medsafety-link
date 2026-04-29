@@ -58,6 +58,15 @@
     </div>
 
     <div class="form-row">
+      <label>LINE Bot userId</label><br>
+      <input value="{{ institution.line.bot_user_id if institution.line.bot_user_id else 'LINE接続診断後に表示されます' }}" readonly>
+      <div class="muted">
+        Webhookがどの施設のLINE公式アカウントから届いたかを判定するためのIDです。
+        チャネルアクセストークンを保存した後、LINE接続診断を実行してください。
+      </div>
+    </div>
+
+    <div class="form-row">
       <label>管理者LINE ID（カンマ区切り）</label><br>
       <input name="admin_ids" value="{{ ','.join(institution.admins.line_user_ids) }}">
       <div class="muted">
@@ -114,6 +123,7 @@
     </div>
 
     <button type="submit">保存</button>
+    <a href="/admin/line/status"><button type="button">LINE接続診断</button></a>
     <a href="/admin/google/status"><button type="button">Google接続診断</button></a>
   </form>
 </div>

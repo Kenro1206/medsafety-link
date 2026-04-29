@@ -57,6 +57,15 @@ def find_patient_by_line_user_id(user_id):
     return None, None
 
 
+def find_institution_by_destination(destination):
+    if not destination:
+        return None
+    for institution_id, institution in get_all_institutions().items():
+        if institution.get("line", {}).get("bot_user_id", "") == destination:
+            return institution_id
+    return None
+
+
 def patient_auto_reply_text(mode, label):
     settings = load_settings()
     messages = settings.get("messages", {})
@@ -86,10 +95,12 @@ def register_webhook_routes(app):
 
                 user_id = event.get("source", {}).get("userId", "")
                 reply_token = event.get("replyToken")
+                destination_institution_id = find_institution_by_destination(body.get("destination", ""))
                 institution_id, patient = find_patient_by_line_user_id(user_id)
 
                 if not patient:
-                    with use_institution(get_current_institution_id()):
+                    target_institution_id = destination_institution_id or get_current_institution_id()
+                    with use_institution(target_institution_id):
                         pending = load_pending_users()
                         if not any(r.get("line_user_id") == user_id for r in pending):
                             pending.append({
