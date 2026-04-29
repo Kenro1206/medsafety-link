@@ -35,7 +35,9 @@ def register_admin_routes(app):
             return default
 
     def default_message(key):
-        return load_settings().get("messages", {}).get(key, "")
+        settings = load_settings()
+        institution = get_current_institution() or {}
+        return institution.get("messages", {}).get(key) or settings.get("messages", {}).get(key, "")
 
     def is_handled(response):
         return str(response.get("handled", "")).upper() in ["TRUE", "済", "DONE", "1"]
@@ -237,6 +239,20 @@ def register_admin_routes(app):
             inst["line"]["channel_access_token"] = new_line_token
             if new_line_token != old_line_token:
                 inst["line"]["bot_user_id"] = ""
+            global_messages = s.get("messages", {})
+            inst_messages = inst.setdefault("messages", {})
+            inst_messages["broadcast_default"] = (
+                request.form.get("broadcast_default", "").strip()
+                or global_messages.get("broadcast_default", "")
+            )
+            inst_messages["remind_default"] = (
+                request.form.get("remind_default", "").strip()
+                or global_messages.get("remind_default", "")
+            )
+            inst_messages["individual_default"] = (
+                request.form.get("individual_default", "").strip()
+                or global_messages.get("individual_default", "")
+            )
             inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()
             inst["admins"]["line_user_ids"] = [x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()]
 
@@ -381,7 +397,8 @@ def register_admin_routes(app):
                         "password": request.form.get("password", "").strip() or "admin",
                         "line": {"channel_access_token": "", "bot_user_id": ""},
                         "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},
-                        "admins": {"line_user_ids": []}
+                        "admins": {"line_user_ids": []},
+                        "messages": load_settings().get("messages", {})
                     }
                     session["institution_id"] = institution_id
                     message = "施設を追加し、操作対象を切り替えました。"

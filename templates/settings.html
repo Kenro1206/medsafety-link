@@ -76,6 +76,27 @@
       </div>
     </div>
 
+    <div class="section-title">メッセージ設定</div>
+
+    <div class="form-row">
+      <label>一斉送信の標準メッセージ</label><br>
+      <textarea name="broadcast_default" style="height:120px;">{{ institution.messages.broadcast_default }}</textarea>
+      <div class="muted">
+        この施設で一斉送信画面を開いたときに最初から入る文面です。
+        実際の送信前に一斉送信画面でも編集できます。
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>未回答再送の標準メッセージ</label><br>
+      <textarea name="remind_default" style="height:90px;">{{ institution.messages.remind_default }}</textarea>
+    </div>
+
+    <div class="form-row">
+      <label>個別送信の標準メッセージ</label><br>
+      <textarea name="individual_default" style="height:90px;">{{ institution.messages.individual_default }}</textarea>
+    </div>
+
     <div class="section-title">Google設定</div>
 
     <div style="padding:12px;border:1px solid #d9e7ff;background:#f8fbff;border-radius:8px;margin-bottom:16px;">

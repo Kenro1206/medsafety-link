@@ -68,8 +68,8 @@ def find_institution_by_destination(destination):
 
 def patient_auto_reply_text(mode, label):
     settings = load_settings()
-    messages = settings.get("messages", {})
     institution = settings.get("institutions", {}).get(get_current_institution_id(), {})
+    messages = institution.get("messages", {}) or settings.get("messages", {})
 
     if mode == "DISASTER":
         return f"回答を受け付けました: {label}"

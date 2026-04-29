@@ -12,6 +12,17 @@ AFTER_HOURS_MESSAGE = (
 )
 
 
+def _default_messages():
+    return {
+        "auto_reply_business": "ご連絡ありがとうございます。内容を確認し、必要に応じて対応いたします。",
+        "auto_reply_after_hours": AFTER_HOURS_MESSAGE,
+        "auto_reply_disaster": "ご連絡ありがとうございます。現在、災害対応モードで対応しております。",
+        "broadcast_default": "【安否確認】現在の状況を返信してください。\n1. 無事\n2. 体調不良\n3. 薬・インスリンが不足\n4. 低血糖が心配\n5. 至急連絡希望",
+        "remind_default": "【再送】安否確認への回答がまだ確認できていません。現在の状況を返信してください。",
+        "individual_default": "状況を確認しました。必要なものがあればお知らせください。"
+    }
+
+
 def _default_institution():
     return {
         "name": "未設定",
@@ -23,7 +34,8 @@ def _default_institution():
             "service_account_file": "./service_account.json",
             "spreadsheet_id": ""
         },
-        "admins": {"line_user_ids": []}
+        "admins": {"line_user_ids": []},
+        "messages": _default_messages()
     }
 
 
@@ -36,14 +48,7 @@ def get_default_settings():
         "alerts": {"severe_codes": ["CALL", "INSULIN_OUT", "HYPO"]},
         "system_admins": {"institution_ids": []},
         "rich_menu": {"normal_id": "", "disaster_id": ""},
-        "messages": {
-            "auto_reply_business": "ご連絡ありがとうございます。内容を確認し、必要に応じて対応いたします。",
-            "auto_reply_after_hours": AFTER_HOURS_MESSAGE,
-            "auto_reply_disaster": "ご連絡ありがとうございます。現在、災害対応モードで対応しております。",
-            "broadcast_default": "【安否確認】現在の状況を返信してください。\n1. 無事\n2. 体調不良\n3. 薬・インスリンが不足\n4. 低血糖が心配\n5. 至急連絡希望",
-            "remind_default": "【再送】安否確認への回答がまだ確認できていません。現在の状況を返信してください。",
-            "individual_default": "状況を確認しました。必要なものがあればお知らせください。"
-        },
+        "messages": _default_messages(),
         "setup": {"candidate_admin_line_ids": []},
         "default_created_at": datetime.now().isoformat()
     }
