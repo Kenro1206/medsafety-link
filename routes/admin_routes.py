@@ -167,8 +167,15 @@ def register_admin_routes(app):
                 settings=load_settings(),
             )
         except Exception as e:
+            spreadsheet_id = safe_call(get_spreadsheet_id, "")
+            spreadsheet_url = (
+                f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+                if spreadsheet_id else "未設定"
+            )
             lines = [
                 "Google Sheets接続診断",
+                f"スプレッドシートID: {spreadsheet_id or '未設定'}",
+                f"設定中のスプレッドシートURL: {spreadsheet_url}",
                 f"認証JSONの使用元: {summary.get('source', '未取得')}",
                 f"サービスアカウント: {summary.get('client_email', '未取得') or '未取得'}",
                 f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
