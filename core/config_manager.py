@@ -7,7 +7,7 @@ DEFAULT_SETTINGS_PATH = os.path.join(BASE_DIR, "settings.json")
 SETTINGS_PATH = os.getenv("SETTINGS_PATH", DEFAULT_SETTINGS_PATH)
 AFTER_HOURS_MESSAGE = (
     "ご連絡ありがとうございます。現在は時間外のため、すぐに対応ができません。"
-    "診療時間内に順次確認いたします。なお、緊急の場合は当院までお電話をして頂いたうえで、"
+    "診療時間内に順次確認いたします。なお、緊急の場合は当院{phone_part}までお電話をして頂いたうえで、"
     "救急外来受診をご検討ください。"
 )
 

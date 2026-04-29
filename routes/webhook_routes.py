@@ -60,6 +60,7 @@ def find_patient_by_line_user_id(user_id):
 def patient_auto_reply_text(mode, label):
     settings = load_settings()
     messages = settings.get("messages", {})
+    institution = settings.get("institutions", {}).get(get_current_institution_id(), {})
 
     if mode == "DISASTER":
         return f"回答を受け付けました: {label}"
@@ -67,7 +68,9 @@ def patient_auto_reply_text(mode, label):
     if is_business_time(settings.get("business_hours", {})):
         return f"回答を受け付けました: {label}"
 
-    return messages.get("auto_reply_after_hours", "")
+    phone = institution.get("phone", "").strip()
+    phone_part = f"（電話番号: {phone}）" if phone else ""
+    return messages.get("auto_reply_after_hours", "").replace("{phone_part}", phone_part)
 
 
 def register_webhook_routes(app):
