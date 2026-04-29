@@ -1,6 +1,6 @@
 import os
 import re
-from flask import request, render_template, redirect, session
+from flask import request, render_template, redirect, session, jsonify
 from core.auth import require_login, require_system_admin
 from core.config_manager import SETTINGS_PATH, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
@@ -118,6 +118,22 @@ def register_admin_routes(app):
             latest_rows=latest_rows,
             recent_responses=recent_responses,
         )
+
+    @app.route("/admin/dashboard/status")
+    def dashboard_status():
+        auth = require_login()
+        if auth:
+            return auth
+
+        responses = safe_call(load_responses, [])
+        latest_timestamp = ""
+        if responses:
+            latest_timestamp = max(r.get("timestamp", "") for r in responses)
+
+        return jsonify({
+            "response_count": len(responses),
+            "latest_timestamp": latest_timestamp,
+        })
 
     @app.route("/admin/settings")
     def admin_settings():

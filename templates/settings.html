@@ -30,6 +30,14 @@
     </div>
 
     <div class="form-row">
+      <label>電話番号</label><br>
+      <input name="hospital_phone" value="{{ institution.phone }}">
+      <div class="muted">
+        時間外メッセージで、緊急時の連絡先として表示する電話番号です。例: 096-000-0000
+      </div>
+    </div>
+
+    <div class="form-row">
       <label>ログインパスワード</label><br>
       <input name="password" value="{{ institution.password }}">
       <div class="muted">
