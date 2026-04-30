@@ -144,6 +144,7 @@
         Google CloudからダウンロードしたJSONキーを選択してください。
         保存後、この下の共有先メールアドレスがJSONの <code>client_email</code> に更新されます。<br>
         現在の保存先: {{ institution.google.service_account_file }}
+        共有先メールアドレスを変更したい場合は、新しいサービスアカウントJSONをここで選択して保存してください。
       </div>
     </div>
 
@@ -156,6 +157,7 @@
       <div class="muted">
         Google Sheets 右上の「共有」から、このメールアドレスを<strong>編集者</strong>として追加してください。
         403エラーが出る場合は、ほぼこの共有設定が原因です。
+        この欄はJSONの <code>client_email</code> を表示する確認欄のため、直接入力では変更できません。
       </div>
     </div>
 

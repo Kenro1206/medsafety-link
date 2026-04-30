@@ -79,6 +79,7 @@ def get_service_account_summary():
     service_account_file = _configured_service_account_file()
     info = None
     source = "未設定"
+    source_path = service_account_file or ""
 
     if service_account_file and os.path.exists(service_account_file):
         source = "設定画面でアップロードされたJSON"
@@ -91,10 +92,11 @@ def get_service_account_summary():
             info = env_info
 
     if not info:
-        return {"source": source, "client_email": "", "project_id": "", "private_key_id": ""}
+        return {"source": source, "source_path": source_path, "client_email": "", "project_id": "", "private_key_id": ""}
 
     return {
         "source": source,
+        "source_path": source_path,
         "client_email": info.get("client_email", ""),
         "project_id": info.get("project_id", ""),
         "private_key_id": info.get("private_key_id", ""),

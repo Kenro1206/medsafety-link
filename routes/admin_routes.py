@@ -214,6 +214,7 @@ def register_admin_routes(app):
                 f"スプレッドシートID: {spreadsheet_id}",
                 f"サービスアカウント: {email if email else '未取得'}",
                 f"認証JSONの使用元: {summary.get('source', '未取得')}",
+                f"認証JSONの保存先: {summary.get('source_path', '') or '環境変数または未設定'}",
                 f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
                 f"秘密鍵ID: {summary.get('private_key_id', '未取得') or '未取得'}",
                 f"取得できたシート: {', '.join(titles) if titles else 'なし'}",
@@ -245,6 +246,7 @@ def register_admin_routes(app):
                 f"スプレッドシートID: {spreadsheet_id or '未設定'}",
                 f"設定中のスプレッドシートURL: {spreadsheet_url}",
                 f"認証JSONの使用元: {summary.get('source', '未取得')}",
+                f"認証JSONの保存先: {summary.get('source_path', '') or '環境変数または未設定'}",
                 f"サービスアカウント: {summary.get('client_email', '未取得') or '未取得'}",
                 f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
                 f"秘密鍵ID: {summary.get('private_key_id', '未取得') or '未取得'}",
@@ -266,8 +268,8 @@ def register_admin_routes(app):
             return auth
 
         institution_id = get_current_institution_id()
+        s = load_settings()
         try:
-            s = load_settings()
             inst = s["institutions"][institution_id]
 
             inst["name"] = request.form.get("hospital_name", "").strip()
@@ -323,6 +325,7 @@ def register_admin_routes(app):
                 inst["google"]["service_account_file"] = path
 
             save_settings(s)
+            s = load_settings()
             message = "設定を保存しました。"
             error_message = ""
         except Exception as e:
@@ -333,7 +336,7 @@ def register_admin_routes(app):
             "settings.html",
             title="設定",
             institution_id=get_current_institution_id(),
-            institution=get_current_institution(),
+            institution=s.get("institutions", {}).get(get_current_institution_id(), get_current_institution()),
             current_mode=safe_call(get_system_mode, "NORMAL"),
             service_account_email=safe_call(get_service_account_email, ""),
             message=message,
