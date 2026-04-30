@@ -385,6 +385,36 @@ def set_latest_response_handled(patient_id, handled):
     return True
 
 
+def set_response_handled(timestamp, patient_id, handled, line_user_id=""):
+    rows = read_sheet(RESPONSES_RANGE)
+    if len(rows) < 2:
+        return False
+
+    headers = rows[0]
+    while len(headers) < 8:
+        headers.append("handled")
+    if "handled" not in headers:
+        headers.append("handled")
+
+    ts_index = headers.index("timestamp") if "timestamp" in headers else 0
+    pid_index = headers.index("patient_id") if "patient_id" in headers else 1
+    line_index = headers.index("line_user_id") if "line_user_id" in headers else 3
+    handled_index = headers.index("handled")
+
+    for row_index, row in enumerate(rows[1:], start=2):
+        row_ts = row[ts_index] if ts_index < len(row) else ""
+        row_pid = row[pid_index] if pid_index < len(row) else ""
+        row_line = row[line_index] if line_index < len(row) else ""
+        if row_ts == timestamp and (row_pid == patient_id or (line_user_id and row_line == line_user_id)):
+            while len(row) <= handled_index:
+                row.append("")
+            row[handled_index] = "TRUE" if handled else ""
+            update_sheet(f"responses!A{row_index}:H{row_index}", [row[:8]])
+            return True
+
+    return False
+
+
 def ensure_spreadsheet_schema():
     spreadsheet = sheets_api_request("GET", "", params={"fields": "sheets.properties.title"})
     existing_titles = {s["properties"]["title"] for s in spreadsheet.get("sheets", [])}

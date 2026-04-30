@@ -21,6 +21,7 @@ from services.sheets_service import (
     save_patients,
     save_pending_users,
     set_latest_response_handled,
+    set_response_handled,
     set_system_mode,
     validate_service_account_json_file,
 )
@@ -57,6 +58,7 @@ def register_admin_routes(app):
         formatted = []
         for row in rows:
             item = dict(row)
+            item["raw_timestamp"] = item.get("timestamp", "")
             item["timestamp"] = format_jst_timestamp(item.get("timestamp", ""))
             formatted.append(item)
         return formatted
@@ -97,16 +99,27 @@ def register_admin_routes(app):
             response = latest.get(patient.get("patient_id", ""), {})
             code = response.get("code", "")
             handled = is_handled(response)
+            raw_timestamp = response.get("timestamp", "")
             latest_rows.append({
                 "patient_id": patient.get("patient_id", ""),
                 "name": patient.get("name", ""),
                 "phone": patient.get("phone", ""),
-                "timestamp": format_jst_timestamp(response.get("timestamp", "未回答")),
+                "timestamp": format_jst_timestamp(raw_timestamp or "未回答"),
+                "raw_timestamp": raw_timestamp,
                 "code": code or "NO_RESPONSE",
                 "label": response.get("label", "未回答"),
                 "handled": handled,
                 "row_class": response_row_class(code, handled, severe_codes),
             })
+        latest_rows = sorted(
+            latest_rows,
+            key=lambda r: (bool(r.get("raw_timestamp")), r.get("raw_timestamp", "")),
+            reverse=True
+        )
+        severe_rows = [
+            row for row in latest_rows
+            if row.get("code") in severe_codes and not row.get("handled")
+        ]
 
         return render_template(
             "dashboard.html",
@@ -122,6 +135,7 @@ def register_admin_routes(app):
             severe_count=len(severe_unhandled),
             attention_count=len(attention_unhandled),
             latest_rows=latest_rows,
+            severe_rows=severe_rows,
             recent_responses=recent_responses,
         )
 
@@ -595,7 +609,7 @@ def register_admin_routes(app):
             })
         return render_template(
             "responders.html",
-            title="回答一覧",
+            title="患者一覧",
             responders=rows,
             default_message=default_message("individual_default"),
             safety_message=default_message("broadcast_default"),
@@ -615,7 +629,20 @@ def register_admin_routes(app):
             title="回答履歴",
             responses=responses[:200],
             total_count=len(responses),
+            default_message=default_message("individual_default"),
         )
+
+    @app.route("/admin/responses/handle", methods=["POST"])
+    def handle_response_history():
+        auth = require_login()
+        if auth:
+            return auth
+        timestamp = request.form.get("timestamp", "").strip()
+        patient_id = request.form.get("patient_id", "").strip()
+        line_user_id = request.form.get("line_user_id", "").strip()
+        handled = request.form.get("handled", "") == "true"
+        set_response_handled(timestamp, patient_id, handled, line_user_id)
+        return redirect(active_admin_path("/admin/responses"))
 
     @app.route("/admin/responders/message", methods=["POST"])
     def responder_message():
@@ -626,21 +653,24 @@ def register_admin_routes(app):
         patient_id = request.form.get("patient_id", "").strip()
         message = request.form.get("message", "").strip()
         send_type = request.form.get("send_type", "text").strip()
+        redirect_to = request.form.get("redirect_to", "/admin/responders").strip()
+        if redirect_to not in ["/admin/responders", "/admin/responses"]:
+            redirect_to = "/admin/responders"
 
         if not message:
-            return redirect(active_admin_path("/admin/responders"))
+            return redirect(active_admin_path(redirect_to))
 
         patients = load_patients()
         patient = next((p for p in patients if p.get("patient_id") == patient_id), None)
         if not patient or not patient.get("line_user_id"):
-            return redirect(active_admin_path("/admin/responders"))
+            return redirect(active_admin_path(redirect_to))
 
         if send_type == "safety":
             push_safety_check(patient.get("line_user_id"), message)
         else:
             push_text(patient.get("line_user_id"), message)
 
-        return redirect(active_admin_path("/admin/responders"))
+        return redirect(active_admin_path(redirect_to))
 
     @app.route("/admin/responders/handle", methods=["POST"])
     def handle_responder():

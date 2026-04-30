@@ -7,18 +7,35 @@
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
-      margin: 20px;
+      margin: 0;
       background: #f5f5f5;
       color: #222;
+    }
+
+    .page-shell {
+      padding: 20px;
     }
 
     .header {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       padding-bottom: 14px;
       border-bottom: 1px solid #ddd;
+    }
+
+    .sticky-top {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #f5f5f5;
+      padding: 12px 20px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .sticky-top .card {
+      margin-bottom: 8px;
     }
 
     .logo {
@@ -237,7 +254,15 @@
 
     @media (max-width: 768px) {
       body {
-        margin: 10px;
+        margin: 0;
+      }
+
+      .page-shell {
+        padding: 10px;
+      }
+
+      .sticky-top {
+        padding: 10px;
       }
 
       .card {
@@ -257,6 +282,7 @@
 </head>
 
 <body>
+  <div class="sticky-top">
   <div class="header">
     <div class="logo">M</div>
     <div>
@@ -280,7 +306,7 @@
     {% set active_qs = "?active_institution_id=" ~ current_institution_id %}
     <a href="/admin/dashboard{{ active_qs }}">ダッシュボード</a> |
     <a href="/admin/register{{ active_qs }}">患者登録</a> |
-    <a href="/admin/responders{{ active_qs }}">回答一覧</a> |
+    <a href="/admin/responders{{ active_qs }}">患者一覧</a> |
     <a href="/admin/responses{{ active_qs }}">回答履歴</a> |
     <a href="/admin/broadcast{{ active_qs }}">一斉送信</a> |
     <a href="/admin/remind{{ active_qs }}">未回答再送</a> |
@@ -299,10 +325,13 @@
     <span class="notification-watch-status muted">通知音: 無効</span>
   </div>
   {% endif %}
+  </div>
 
+  <div class="page-shell">
   <h2>{{ title }}</h2>
 
   {% block content %}{% endblock %}
+  </div>
   {% if show_menu is not defined or show_menu %}
   <script>
   (function() {

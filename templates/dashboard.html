@@ -15,7 +15,29 @@
 </div>
 
 <div class="card">
+  <div class="section-title">重症アラート</div>
+  {% if severe_rows %}
+    <div class="error" style="font-size:18px;margin-bottom:12px;">重症アラート: {{ severe_rows|length }} 件の未対応があります。</div>
+    <div class="section-title">重傷者リスト</div>
+    <table style="margin-bottom:18px;">
+      <tr><th>患者ID</th><th>氏名</th><th>電話</th><th>回答時刻</th><th>回答内容</th><th>対応</th></tr>
+      {% for r in severe_rows %}
+        <tr class="{{ r.row_class }}">
+          <td>{{ r.patient_id }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.phone }}</td>
+          <td>{{ r.timestamp }}</td>
+          <td><strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span></td>
+          <td><span class="error">未対応</span></td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <div class="success" style="margin-bottom:12px;">重症アラートはありません。</div>
+  {% endif %}
+
   <div class="section-title">最新回答状況</div>
+  <div class="muted" style="margin-bottom:10px;">回答時刻が新しい順に表示します。未回答の患者は下に表示されます。</div>
   <table>
     <tr><th>患者ID</th><th>氏名</th><th>電話</th><th>回答時刻</th><th>回答内容</th><th>対応</th></tr>
     {% for r in latest_rows %}

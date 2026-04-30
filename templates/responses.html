@@ -5,7 +5,7 @@
   <div class="section-title">回答履歴</div>
   <div class="muted" style="margin-bottom:12px;">全 {{ total_count }} 件のうち、最新200件を表示しています。</div>
   <table>
-    <tr><th>時刻</th><th>患者ID</th><th>氏名</th><th>LINE user_id</th><th>種別</th><th>回答内容</th><th>対応</th></tr>
+    <tr><th>時刻</th><th>患者ID</th><th>氏名</th><th>LINE user_id</th><th>種別</th><th>回答内容</th><th>対応</th><th>操作</th><th>個別送信</th></tr>
     {% for r in responses %}
       <tr>
         <td>{{ r.timestamp }}</td>
@@ -15,9 +15,36 @@
         <td>{{ r.event_type }}</td>
         <td><strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span></td>
         <td>{% if r.handled %}<span class="success">対応済</span>{% else %}<span class="error">未対応</span>{% endif %}</td>
+        <td>
+          <form method="POST" action="/admin/responses/handle">
+            <input type="hidden" name="timestamp" value="{{ r.raw_timestamp }}">
+            <input type="hidden" name="patient_id" value="{{ r.patient_id }}">
+            <input type="hidden" name="line_user_id" value="{{ r.line_user_id }}">
+            {% if r.handled %}
+              <button name="handled" value="false">戻す</button>
+            {% else %}
+              <button name="handled" value="true">対応済</button>
+            {% endif %}
+          </form>
+        </td>
+        <td style="min-width:260px;">
+          {% if r.patient_id and r.line_user_id %}
+            <form method="POST" action="/admin/responders/message">
+              <input type="hidden" name="patient_id" value="{{ r.patient_id }}">
+              <input type="hidden" name="redirect_to" value="/admin/responses">
+              <textarea name="message" style="height:68px;">{{ default_message }}</textarea>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                <button name="send_type" value="text">個別送信</button>
+                <button name="send_type" value="safety">安否確認送信</button>
+              </div>
+            </form>
+          {% else %}
+            <span class="muted">LINE未登録</span>
+          {% endif %}
+        </td>
       </tr>
     {% else %}
-      <tr><td colspan="7" style="text-align:center;color:#666;">回答履歴がありません。</td></tr>
+      <tr><td colspan="9" style="text-align:center;color:#666;">回答履歴がありません。</td></tr>
     {% endfor %}
   </table>
 </div>
