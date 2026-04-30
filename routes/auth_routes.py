@@ -31,6 +31,7 @@ def register_auth_routes(app):
                 message = "パスワードが違います。"
             else:
                 session["logged_in"] = True
+                session["login_institution_id"] = institution_id
                 session["institution_id"] = institution_id
                 if is_system_admin_institution(institution_id):
                     session["system_admin_institution_id"] = institution_id

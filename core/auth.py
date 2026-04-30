@@ -1,6 +1,8 @@
 from flask import session, redirect
 from core.config_manager import load_settings
 
+FACILITY_MANAGER_LOGIN_ID = "kumamoto_chuo"
+
 
 def is_logged_in():
     institution_id = session.get("institution_id")
@@ -34,9 +36,12 @@ def is_system_admin_institution(institution_id):
 
 
 def can_manage_institutions():
-    institution_id = session.get("institution_id")
+    login_institution_id = session.get("login_institution_id")
     admin_institution_id = session.get("system_admin_institution_id")
-    return is_system_admin_institution(institution_id) or is_system_admin_institution(admin_institution_id)
+    return (
+        login_institution_id == FACILITY_MANAGER_LOGIN_ID
+        or admin_institution_id == FACILITY_MANAGER_LOGIN_ID
+    )
 
 
 def require_system_admin():
