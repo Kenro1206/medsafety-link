@@ -1,6 +1,6 @@
 from flask import make_response, request, session, redirect, render_template
 from core.config_manager import load_settings
-from core.auth import is_system_admin_institution
+from core.auth import FACILITY_MANAGER_LOGIN_ID, is_system_admin_institution
 
 
 def register_auth_routes(app):
@@ -36,7 +36,7 @@ def register_auth_routes(app):
                 if is_system_admin_institution(institution_id):
                     session["system_admin_institution_id"] = institution_id
                     operated_id = request.cookies.get("last_operated_institution_id", "").strip()
-                    if operated_id in institutions:
+                    if institution_id != FACILITY_MANAGER_LOGIN_ID and operated_id in institutions:
                         session["institution_id"] = operated_id
                 response = make_response(redirect("/admin/dashboard"))
                 if remember_institution:
