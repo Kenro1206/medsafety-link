@@ -277,17 +277,18 @@
     {% endif %}
   </div>
   <div class="menu">
-    <a href="/admin/dashboard">ダッシュボード</a> |
-    <a href="/admin/register">患者登録</a> |
-    <a href="/admin/responders">回答一覧</a> |
-    <a href="/admin/responses">回答履歴</a> |
-    <a href="/admin/broadcast">一斉送信</a> |
-    <a href="/admin/remind">未回答再送</a> |
-    <a href="/admin/mode">モード切替</a> |
-    <a href="/admin/settings">設定</a> |
-    <a href="/admin/help/google_setup">Google連携手順</a> |
+    {% set active_qs = "?active_institution_id=" ~ current_institution_id %}
+    <a href="/admin/dashboard{{ active_qs }}">ダッシュボード</a> |
+    <a href="/admin/register{{ active_qs }}">患者登録</a> |
+    <a href="/admin/responders{{ active_qs }}">回答一覧</a> |
+    <a href="/admin/responses{{ active_qs }}">回答履歴</a> |
+    <a href="/admin/broadcast{{ active_qs }}">一斉送信</a> |
+    <a href="/admin/remind{{ active_qs }}">未回答再送</a> |
+    <a href="/admin/mode{{ active_qs }}">モード切替</a> |
+    <a href="/admin/settings{{ active_qs }}">設定</a> |
+    <a href="/admin/help/google_setup{{ active_qs }}">Google連携手順</a> |
     {% if can_manage_institutions %}
-    <a href="/admin/institutions">施設ID管理</a> |
+    <a href="/admin/institutions{{ active_qs }}">施設ID管理</a> |
     {% endif %}
     <a href="/logout">ログアウト</a>
   </div>
@@ -305,14 +306,32 @@
   {% if show_menu is not defined or show_menu %}
   <script>
   (function() {
-    const statusUrl = "/admin/dashboard/status";
     const institutionId = "{{ current_institution_id or 'default' }}";
+    const activeParam = "active_institution_id=" + encodeURIComponent(institutionId);
+    const statusUrl = "/admin/dashboard/status?" + activeParam;
     const storageKey = "medsafety_dashboard_status_" + institutionId;
     const soundKey = "medsafety_dashboard_sound_enabled";
     const statusLabels = Array.from(document.querySelectorAll(".notification-watch-status"));
     const enableSoundButtons = Array.from(document.querySelectorAll(".enable-sound-button"));
     const disableSoundButtons = Array.from(document.querySelectorAll(".disable-sound-button"));
     let audioContext = null;
+
+    document.querySelectorAll('a[href^="/admin/"]').forEach((link) => {
+      const href = link.getAttribute("href") || "";
+      if (href.includes("active_institution_id=")) return;
+      link.setAttribute("href", href + (href.includes("?") ? "&" : "?") + activeParam);
+    });
+
+    document.querySelectorAll("form").forEach((form) => {
+      form.addEventListener("submit", () => {
+        if (form.querySelector('input[name="active_institution_id"]')) return;
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "active_institution_id";
+        input.value = institutionId;
+        form.appendChild(input);
+      });
+    });
     let soundEnabled = localStorage.getItem(soundKey) === "1";
 
     function setStatus(text) {

@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-from flask import has_request_context, session
+from flask import has_request_context, request, session
 from core.config_manager import load_settings
 
 _institution_override = ContextVar("institution_override", default=None)
@@ -12,12 +12,17 @@ def get_current_institution_id():
     if override:
         return override
 
+    s = load_settings()
+
     if has_request_context():
+        active_institution_id = request.values.get("active_institution_id", "").strip()
+        if active_institution_id in s.get("institutions", {}):
+            return active_institution_id
+
         institution_id = session.get("institution_id")
         if institution_id:
             return institution_id
 
-    s = load_settings()
     return s.get("default_institution_id")
 
 

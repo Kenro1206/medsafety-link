@@ -35,6 +35,9 @@ def register_admin_routes(app):
             print("[ERROR]", e)
             return default
 
+    def active_admin_path(path):
+        return f"{path}?active_institution_id={get_current_institution_id()}"
+
     def default_message(key):
         settings = load_settings()
         institution = get_current_institution() or {}
@@ -400,7 +403,6 @@ def register_admin_routes(app):
         s = load_settings()
         message = ""
         error_message = ""
-        last_operated_institution_id = ""
 
         if request.method == "POST":
             action = request.form.get("action", "").strip()
@@ -443,8 +445,16 @@ def register_admin_routes(app):
                     if institution_id not in s.get("institutions", {}):
                         raise ValueError("施設が見つかりません。")
                     session["institution_id"] = institution_id
-                    last_operated_institution_id = institution_id
-                    message = "操作対象の施設を切り替えました。"
+                    response = make_response(redirect(f"/admin/dashboard?active_institution_id={institution_id}"))
+                    response.set_cookie(
+                        "last_operated_institution_id",
+                        institution_id,
+                        max_age=60 * 60 * 24 * 180,
+                        httponly=True,
+                        samesite="Lax",
+                        secure=request.is_secure,
+                    )
+                    return response
 
                 else:
                     raise ValueError("不明な操作です。")
@@ -466,15 +476,6 @@ def register_admin_routes(app):
                 error_message=error_message,
             )
         )
-        if last_operated_institution_id:
-            response.set_cookie(
-                "last_operated_institution_id",
-                last_operated_institution_id,
-                max_age=60 * 60 * 24 * 180,
-                httponly=True,
-                samesite="Lax",
-                secure=request.is_secure,
-            )
         return response
 
     @app.route("/admin/register", methods=["GET", "POST"])
@@ -525,7 +526,7 @@ def register_admin_routes(app):
         save_patients(patients)
         pending = [r for r in load_pending_users() if r.get("line_user_id") != line_user_id]
         save_pending_users(pending)
-        return redirect("/admin/register")
+        return redirect(active_admin_path("/admin/register"))
 
     @app.route("/admin/responders")
     def responders():
@@ -588,19 +589,19 @@ def register_admin_routes(app):
         send_type = request.form.get("send_type", "text").strip()
 
         if not message:
-            return redirect("/admin/responders")
+            return redirect(active_admin_path("/admin/responders"))
 
         patients = load_patients()
         patient = next((p for p in patients if p.get("patient_id") == patient_id), None)
         if not patient or not patient.get("line_user_id"):
-            return redirect("/admin/responders")
+            return redirect(active_admin_path("/admin/responders"))
 
         if send_type == "safety":
             push_safety_check(patient.get("line_user_id"), message)
         else:
             push_text(patient.get("line_user_id"), message)
 
-        return redirect("/admin/responders")
+        return redirect(active_admin_path("/admin/responders"))
 
     @app.route("/admin/responders/handle", methods=["POST"])
     def handle_responder():
@@ -608,7 +609,7 @@ def register_admin_routes(app):
         if auth:
             return auth
         set_latest_response_handled(request.form.get("patient_id", "").strip(), True)
-        return redirect("/admin/responders")
+        return redirect(active_admin_path("/admin/responders"))
 
     @app.route("/admin/responders/unhandle", methods=["POST"])
     def unhandle_responder():
@@ -616,7 +617,7 @@ def register_admin_routes(app):
         if auth:
             return auth
         set_latest_response_handled(request.form.get("patient_id", "").strip(), False)
-        return redirect("/admin/responders")
+        return redirect(active_admin_path("/admin/responders"))
 
     @app.route("/admin/broadcast")
     def broadcast():
@@ -657,7 +658,7 @@ def register_admin_routes(app):
             return auth
         if request.method == "POST":
             set_system_mode(request.form.get("mode", "NORMAL"))
-            return redirect("/admin/mode")
+            return redirect(active_admin_path("/admin/mode"))
         return render_template("mode.html", title="モード切替", current_mode=safe_call(get_system_mode, "NORMAL"))
 
     @app.route("/admin/help/<topic>")
