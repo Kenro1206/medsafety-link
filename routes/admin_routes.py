@@ -513,6 +513,28 @@ def register_admin_routes(app):
                         inst["password"] = password
                     message = "施設情報を更新しました。"
 
+                elif action == "delete":
+                    institution_id = request.form.get("institution_id", "").strip()
+                    institutions = s.get("institutions", {})
+                    if institution_id not in institutions:
+                        raise ValueError("施設が見つかりません。")
+                    if len(institutions) <= 1:
+                        raise ValueError("最後の1施設は削除できません。")
+                    if institution_id == get_current_institution_id():
+                        raise ValueError("現在操作中の施設は削除できません。別の施設を操作対象に切り替えてから削除してください。")
+
+                    deleted_name = institutions.get(institution_id, {}).get("name", institution_id)
+                    del institutions[institution_id]
+
+                    admin_ids = s.setdefault("system_admins", {}).setdefault("institution_ids", [])
+                    s["system_admins"]["institution_ids"] = [x for x in admin_ids if x != institution_id]
+                    if s.get("default_institution_id") == institution_id:
+                        s["default_institution_id"] = next(iter(institutions))
+                    if session.get("institution_id") == institution_id:
+                        session["institution_id"] = s.get("default_institution_id")
+
+                    message = f"施設「{deleted_name}」を削除しました。"
+
                 elif action == "switch":
                     institution_id = request.form.get("institution_id", "").strip()
                     if institution_id not in s.get("institutions", {}):

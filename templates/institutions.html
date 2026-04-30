@@ -25,6 +25,7 @@
   <div class="muted" style="margin-bottom:14px;">
     「この施設を操作」を押すと、その施設の設定画面・患者一覧・送信機能を操作対象に切り替えます。
     パスワード欄は空欄のまま更新すると変更されません。
+    削除は取り消せません。現在操作中の施設と最後の1施設は削除できません。
   </div>
   <table>
     <tr><th>施設ID</th><th>施設名</th><th>診療科</th><th>パスワード変更</th><th>操作</th></tr>
@@ -47,9 +48,26 @@
             <input type="hidden" name="institution_id" value="{{ institution_id }}">
             <button type="submit">この施設を操作</button>
           </form>
+          {% if institution_id != current_institution_id and institutions|length > 1 %}
+            <form method="POST" class="delete-institution-form" style="margin-top:8px;">
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="institution_id" value="{{ institution_id }}">
+              <button type="submit" style="background:#d93025;">削除</button>
+            </form>
+          {% endif %}
         </td>
       </tr>
     {% endfor %}
   </table>
 </div>
+<script>
+document.querySelectorAll('.delete-institution-form').forEach(form => {
+  form.addEventListener('submit', event => {
+    const institutionId = form.querySelector('input[name="institution_id"]').value;
+    if (!confirm(`施設「${institutionId}」を削除します。元に戻せません。よろしいですか？`)) {
+      event.preventDefault();
+    }
+  });
+});
+</script>
 {% endblock %}
