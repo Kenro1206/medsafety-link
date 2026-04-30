@@ -107,6 +107,20 @@
     </div>
 
     <div class="form-row">
+      <label>個別送信の定型文 3件</label><br>
+      {% set individual_templates = institution.messages.individual_templates if institution.messages.individual_templates is defined else [institution.messages.individual_default, '', ''] %}
+      {% for i in range(3) %}
+        <div style="margin-bottom:10px;">
+          <div class="muted">定型文{{ i + 1 }}</div>
+          <textarea name="individual_template_{{ i + 1 }}" style="height:80px;">{{ individual_templates[i] if individual_templates|length > i else '' }}</textarea>
+        </div>
+      {% endfor %}
+      <div class="muted">
+        患者一覧・回答履歴の個別送信欄で選択できます。定型文1が空の場合は、個別送信の標準メッセージを使います。
+      </div>
+    </div>
+
+    <div class="form-row">
       <label>安否確認ボタン・回答コード</label><br>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
         {% for option in institution.safety_reply_options %}

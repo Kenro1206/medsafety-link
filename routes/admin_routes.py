@@ -44,6 +44,20 @@ def register_admin_routes(app):
         institution = get_current_institution() or {}
         return institution.get("messages", {}).get(key) or settings.get("messages", {}).get(key, "")
 
+    def individual_templates():
+        settings = load_settings()
+        institution = get_current_institution() or {}
+        templates = institution.get("messages", {}).get("individual_templates")
+        if not isinstance(templates, list):
+            templates = settings.get("messages", {}).get("individual_templates", [])
+        fallback = default_message("individual_default")
+        templates = [(text or "").strip() for text in templates[:3]]
+        while len(templates) < 3:
+            templates.append(fallback if not templates else "")
+        if not any(templates):
+            templates[0] = fallback
+        return templates
+
     def is_handled(response):
         return str(response.get("handled", "")).upper() in ["TRUE", "済", "DONE", "1"]
 
@@ -312,6 +326,12 @@ def register_admin_routes(app):
                 request.form.get("individual_default", "").strip()
                 or global_messages.get("individual_default", "")
             )
+            inst_messages["individual_templates"] = []
+            for index in range(1, 4):
+                template = request.form.get(f"individual_template_{index}", "").strip()
+                if not template and index == 1:
+                    template = inst_messages["individual_default"]
+                inst_messages["individual_templates"].append(template)
             default_options = s.get("safety_reply_options", [])
             inst["safety_reply_options"] = []
             for index in range(5):
@@ -612,6 +632,7 @@ def register_admin_routes(app):
             title="患者一覧",
             responders=rows,
             default_message=default_message("individual_default"),
+            individual_templates=individual_templates(),
             safety_message=default_message("broadcast_default"),
         )
 
@@ -630,6 +651,7 @@ def register_admin_routes(app):
             responses=responses[:200],
             total_count=len(responses),
             default_message=default_message("individual_default"),
+            individual_templates=individual_templates(),
         )
 
     @app.route("/admin/responses/handle", methods=["POST"])

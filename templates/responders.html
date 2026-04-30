@@ -27,7 +27,12 @@
         {% if r.line_user_id %}
           <form method="POST" action="/admin/responders/message">
             <input type="hidden" name="patient_id" value="{{ r.patient_id }}">
-            <textarea name="message" style="height:68px;">{{ default_message }}</textarea>
+            <select class="template-select" style="margin-bottom:8px;">
+              {% for template in individual_templates %}
+                <option value="{{ template }}">定型文{{ loop.index }}</option>
+              {% endfor %}
+            </select>
+            <textarea name="message" style="height:68px;">{{ individual_templates[0] if individual_templates else default_message }}</textarea>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
               <button name="send_type" value="text">個別送信</button>
               <button name="send_type" value="safety">安否確認送信</button>
@@ -45,5 +50,6 @@
 <script>
 function showUnHandled(){document.querySelectorAll('.responder-row').forEach(r=>{r.style.display=r.dataset.handled==='true'?'none':''});document.getElementById('filterStatus').innerText='（未対応のみ表示中）'}
 function showAll(){document.querySelectorAll('.responder-row').forEach(r=>r.style.display='');document.getElementById('filterStatus').innerText='（全件表示）'}
+document.querySelectorAll('.template-select').forEach(select=>{select.addEventListener('change',()=>{const textarea=select.closest('form').querySelector('textarea[name="message"]');if(textarea) textarea.value=select.value;});});
 </script>
 {% endblock %}
