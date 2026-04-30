@@ -5,14 +5,14 @@
   <div class="section-title">回答履歴</div>
   <div class="muted" style="margin-bottom:12px;">全 {{ total_count }} 件のうち、最新200件を表示しています。</div>
   <table>
-    <tr><th>時刻</th><th>患者ID</th><th>氏名</th><th>LINE user_id</th><th>種別</th><th>回答内容</th><th>対応</th><th>操作</th><th>個別送信</th></tr>
+    <tr><th>時刻</th><th>患者ID</th><th>氏名</th><th>LINE user_id</th><th class="event-type-col">種別</th><th>回答内容</th><th>対応</th><th>操作</th><th>個別送信</th></tr>
     {% for r in responses %}
       <tr>
         <td>{{ r.timestamp }}</td>
         <td>{{ r.patient_id }}</td>
         <td>{{ r.name }}</td>
         <td style="word-break:break-all;">{{ r.line_user_id }}</td>
-        <td>{{ r.event_type }}</td>
+        <td class="event-type-col">{{ r.event_type }}</td>
         <td><strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span></td>
         <td>{% if r.handled %}<span class="success">対応済</span>{% else %}<span class="error">未対応</span>{% endif %}</td>
         <td>
@@ -53,6 +53,14 @@
     {% endfor %}
   </table>
 </div>
+
+<style>
+.event-type-col {
+  width: 88px;
+  max-width: 88px;
+  white-space: nowrap;
+}
+</style>
 
 <script>
 document.querySelectorAll('.template-select').forEach(select=>{
