@@ -1,10 +1,26 @@
 import json
 import os
+import shutil
 from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SETTINGS_PATH = os.path.join(BASE_DIR, "settings.json")
-SETTINGS_PATH = os.getenv("SETTINGS_PATH", DEFAULT_SETTINGS_PATH)
+PERSISTENT_DATA_DIR = "/var/data"
+
+
+def _resolve_settings_path():
+    configured_path = os.getenv("SETTINGS_PATH", "").strip()
+    if configured_path:
+        return configured_path
+
+    persistent_path = os.path.join(PERSISTENT_DATA_DIR, "settings.json")
+    if os.path.isdir(PERSISTENT_DATA_DIR):
+        return persistent_path
+
+    return DEFAULT_SETTINGS_PATH
+
+
+SETTINGS_PATH = _resolve_settings_path()
 AFTER_HOURS_MESSAGE = (
     "ご連絡ありがとうございます。現在は時間外のため、すぐに対応ができません。"
     "診療時間内に順次確認いたします。なお、緊急の場合は当院{phone_part}までお電話をして頂いたうえで、"
@@ -154,5 +170,27 @@ def load_settings():
 
 def save_settings(data):
     data = normalize_settings(data)
-    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+    settings_dir = os.path.dirname(SETTINGS_PATH)
+    if settings_dir:
+        os.makedirs(settings_dir, exist_ok=True)
+
+    if os.path.exists(SETTINGS_PATH):
+        backup_path = f"{SETTINGS_PATH}.backup"
+        shutil.copy2(SETTINGS_PATH, backup_path)
+
+    tmp_path = f"{SETTINGS_PATH}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, SETTINGS_PATH)
+
+
+def get_settings_storage_status():
+    return {
+        "settings_path": SETTINGS_PATH,
+        "default_settings_path": DEFAULT_SETTINGS_PATH,
+        "persistent_data_dir": PERSISTENT_DATA_DIR,
+        "persistent_data_dir_exists": os.path.isdir(PERSISTENT_DATA_DIR),
+        "uses_persistent_path": SETTINGS_PATH.startswith(PERSISTENT_DATA_DIR + os.sep),
+        "settings_exists": os.path.exists(SETTINGS_PATH),
+        "backup_exists": os.path.exists(f"{SETTINGS_PATH}.backup"),
+    }

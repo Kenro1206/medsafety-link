@@ -173,6 +173,9 @@
     <a href="/admin/line/status"><button type="button">LINE接続診断</button></a>
     <a href="/admin/webhook/status"><button type="button">Webhook受信診断</button></a>
     <a href="/admin/google/status"><button type="button">Google接続診断</button></a>
+    {% if can_manage_institutions %}
+      <a href="/admin/settings/storage"><button type="button">設定保存先診断</button></a>
+    {% endif %}
   </form>
 </div>
 

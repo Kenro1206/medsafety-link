@@ -3,7 +3,7 @@ import os
 import re
 from flask import make_response, request, render_template, redirect, session, jsonify
 from core.auth import require_login, require_system_admin
-from core.config_manager import SETTINGS_PATH, load_settings, save_settings
+from core.config_manager import SETTINGS_PATH, get_settings_storage_status, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
 from core.time_utils import format_jst_timestamp
 from core.utils import help_link
@@ -157,6 +157,42 @@ def register_admin_routes(app):
             message="",
             error_message="",
             help_link=help_link
+        )
+
+    @app.route("/admin/settings/storage")
+    def settings_storage_status():
+        auth = require_system_admin()
+        if auth:
+            return auth
+
+        status = get_settings_storage_status()
+        settings = load_settings()
+        lines = [
+            "設定保存先診断",
+            f"設定保存先: {status['settings_path']}",
+            f"標準設定ファイル: {status['default_settings_path']}",
+            f"永続ディスク候補: {status['persistent_data_dir']}",
+            f"永続ディスク候補が存在: {'はい' if status['persistent_data_dir_exists'] else 'いいえ'}",
+            f"永続ディスクを使用中: {'はい' if status['uses_persistent_path'] else 'いいえ'}",
+            f"設定ファイルが存在: {'はい' if status['settings_exists'] else 'いいえ'}",
+            f"バックアップが存在: {'はい' if status['backup_exists'] else 'いいえ'}",
+            f"登録施設数: {len(settings.get('institutions', {}))}",
+            f"登録施設ID: {', '.join(settings.get('institutions', {}).keys())}",
+        ]
+        if not status["uses_persistent_path"]:
+            lines.extend([
+                "",
+                "注意: 永続ディスクを使用していません。",
+                "RenderのEnvironmentに SETTINGS_PATH=/var/data/settings.json を設定し、Diskの mountPath が /var/data になっているか確認してください。",
+            ])
+
+        return render_template(
+            "setup_result.html",
+            title="設定保存先診断",
+            success=status["uses_persistent_path"],
+            result_text="\n".join(lines),
+            back_url="/admin/settings",
+            settings=settings,
         )
 
     @app.route("/admin/google/status")
