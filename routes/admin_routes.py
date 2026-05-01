@@ -77,6 +77,23 @@ def register_admin_routes(app):
             formatted.append(item)
         return formatted
 
+    def remove_linked_pending_users(patients=None, pending_users=None, extra_line_user_ids=None):
+        patients = patients if patients is not None else load_patients()
+        pending_users = pending_users if pending_users is not None else load_pending_users()
+        linked_line_ids = {
+            p.get("line_user_id", "").strip()
+            for p in patients
+            if p.get("line_user_id", "").strip()
+        }
+        linked_line_ids.update(x.strip() for x in (extra_line_user_ids or []) if x and x.strip())
+        filtered = [
+            row for row in pending_users
+            if row.get("line_user_id", "").strip() not in linked_line_ids
+        ]
+        if len(filtered) != len(pending_users):
+            save_pending_users(filtered)
+        return filtered
+
     @app.route("/admin/dashboard")
     def dashboard():
         auth = require_login()
@@ -598,11 +615,13 @@ def register_admin_routes(app):
                     patients.append({"patient_id": patient_id, "name": name, "phone": phone, "line_user_id": line_user_id})
                     message = "患者を登録しました。"
                 save_patients(patients)
+                if line_user_id:
+                    remove_linked_pending_users(patients=patients, extra_line_user_ids=[line_user_id])
             except Exception as e:
                 error_message = f"保存エラー: {e}"
 
         patients = safe_call(load_patients, [])
-        pending_users = with_jst_timestamps(safe_call(load_pending_users, []))
+        pending_users = with_jst_timestamps(safe_call(lambda: remove_linked_pending_users(patients=patients), []))
         unlinked_patients = [p for p in patients if not p.get("line_user_id")]
         return render_template("register.html", title="患者登録", patients=patients, pending_users=pending_users, unlinked_patients=unlinked_patients, message=message, error_message=error_message)
 
@@ -619,8 +638,7 @@ def register_admin_routes(app):
             if patient.get("patient_id") == patient_id:
                 patient["line_user_id"] = line_user_id
         save_patients(patients)
-        pending = [r for r in load_pending_users() if r.get("line_user_id") != line_user_id]
-        save_pending_users(pending)
+        remove_linked_pending_users(patients=patients, extra_line_user_ids=[line_user_id])
         return redirect(active_admin_path("/admin/register"))
 
     @app.route("/admin/responders")
