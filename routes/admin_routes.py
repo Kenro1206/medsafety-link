@@ -15,9 +15,11 @@ from services.sheets_service import (
     get_spreadsheet_id,
     get_spreadsheet_titles,
     get_system_mode,
+    append_sent_message,
     load_patients,
     load_pending_users,
     load_responses,
+    load_sent_messages,
     save_patients,
     save_pending_users,
     set_latest_response_handled,
@@ -251,7 +253,7 @@ def register_admin_routes(app):
             spreadsheet_id = get_spreadsheet_id()
             email = get_service_account_email()
             titles = get_spreadsheet_titles()
-            required = ["patients", "pending_users", "responses", "system_mode"]
+            required = ["patients", "pending_users", "responses", "sent_messages", "system_mode"]
             missing = [name for name in required if name not in titles]
 
             lines = [
@@ -685,10 +687,15 @@ def register_admin_routes(app):
         responses = safe_call(load_responses, [])
         responses = sorted(responses, key=lambda r: r.get("timestamp", ""), reverse=True)
         responses = with_jst_timestamps(responses)
+        sent_messages = safe_call(load_sent_messages, [])
+        sent_messages = sorted(sent_messages, key=lambda r: r.get("timestamp", ""), reverse=True)
+        sent_messages = with_jst_timestamps(sent_messages)
         return render_template(
             "responses.html",
             title="回答履歴",
             responses=responses[:200],
+            sent_messages=sent_messages[:200],
+            sent_total_count=len(sent_messages),
             total_count=len(responses),
             default_message=default_message("individual_default"),
             individual_templates=individual_templates(),
@@ -728,9 +735,11 @@ def register_admin_routes(app):
             return redirect(active_admin_path(redirect_to))
 
         if send_type == "safety":
-            push_safety_check(patient.get("line_user_id"), message)
+            ok, detail = push_safety_check(patient.get("line_user_id"), message)
+            append_sent_message(patient, "個別送信（安否確認）", message, ok, detail)
         else:
-            push_text(patient.get("line_user_id"), message)
+            ok, detail = push_text(patient.get("line_user_id"), message)
+            append_sent_message(patient, "個別送信", message, ok, detail)
 
         return redirect(active_admin_path(redirect_to))
 
@@ -763,7 +772,7 @@ def register_admin_routes(app):
         if auth:
             return auth
         message = request.form.get("message", "").strip()
-        return render_template("broadcast_result.html", title="一斉送信結果", **send_to_patients(load_patients(), message, with_safety_buttons=True))
+        return render_template("broadcast_result.html", title="一斉送信結果", **send_to_patients(load_patients(), message, with_safety_buttons=True, send_type="一斉送信"))
 
     @app.route("/admin/remind")
     def remind():
@@ -780,7 +789,7 @@ def register_admin_routes(app):
         message = request.form.get("message", "").strip()
         latest = get_latest_responses()
         targets = [p for p in load_patients() if p.get("line_user_id") and p.get("patient_id") not in latest]
-        return render_template("broadcast_result.html", title="再送結果", **send_to_patients(targets, message, with_safety_buttons=True))
+        return render_template("broadcast_result.html", title="再送結果", **send_to_patients(targets, message, with_safety_buttons=True, send_type="未回答再送"))
 
     @app.route("/admin/mode", methods=["GET", "POST"])
     def mode():
@@ -828,7 +837,7 @@ def register_admin_routes(app):
         }.get(topic, "ヘルプは準備中です。")
         return render_template("help.html", title="ヘルプ", body=body)
 
-    def send_to_patients(patients, message, with_safety_buttons=False):
+    def send_to_patients(patients, message, with_safety_buttons=False, send_type="送信"):
         results = []
         success = 0
         fail = 0
@@ -839,6 +848,7 @@ def register_admin_routes(app):
                 ok, detail = push_safety_check(patient.get("line_user_id"), message)
             else:
                 ok, detail = push_text(patient.get("line_user_id"), message)
+            append_sent_message(patient, send_type, message, ok, detail)
             success += 1 if ok else 0
             fail += 0 if ok else 1
             results.append({"patient_id": patient.get("patient_id", ""), "name": patient.get("name", ""), "ok": ok, "detail": detail})

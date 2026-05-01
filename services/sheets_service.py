@@ -10,12 +10,14 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 PATIENTS_RANGE = "patients!A:D"
 PENDING_RANGE = "pending_users!A:D"
 RESPONSES_RANGE = "responses!A:H"
+SENT_MESSAGES_RANGE = "sent_messages!A:H"
 SYSTEM_MODE_RANGE = "system_mode!A:A"
 
 REQUIRED_SHEETS = {
     "patients": [["patient_id", "name", "phone", "line_user_id"]],
     "pending_users": [["timestamp", "line_user_id", "patient_name", "display_text"]],
     "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled"]],
+    "sent_messages": [["timestamp", "patient_id", "name", "line_user_id", "send_type", "message", "ok", "detail"]],
     "system_mode": [["mode"], ["NORMAL"]],
 }
 
@@ -337,6 +339,27 @@ def append_response(patient, user_id, event_type, code, label):
     ])
 
 
+def append_sent_message(patient, send_type, message, ok, detail):
+    ensure_spreadsheet_schema()
+    update_sheet("sent_messages!A1:H1", REQUIRED_SHEETS["sent_messages"])
+    append_sheet(SENT_MESSAGES_RANGE, [
+        now_jst_iso(),
+        patient.get("patient_id", ""),
+        patient.get("name", ""),
+        patient.get("line_user_id", ""),
+        send_type,
+        message,
+        "TRUE" if ok else "FALSE",
+        str(detail),
+    ])
+
+
+def load_sent_messages():
+    ensure_spreadsheet_schema()
+    rows = read_sheet(SENT_MESSAGES_RANGE)
+    return rows_to_dicts(rows)
+
+
 def get_latest_responses():
     responses = load_responses()
     latest = {}
@@ -433,8 +456,8 @@ def ensure_spreadsheet_schema():
         if not rows:
             update_sheet(f"{title}!A1", values)
             initialized.append(title)
-        elif title == "responses" and rows[0] != values[0]:
-            update_sheet("responses!A1:H1", values[:1])
+        elif title in ["responses", "sent_messages"] and rows[0] != values[0]:
+            update_sheet(f"{title}!A1:H1", values[:1])
             initialized.append(title)
 
     return initialized
