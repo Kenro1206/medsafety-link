@@ -96,6 +96,18 @@ def register_admin_routes(app):
             save_pending_users(filtered)
         return filtered
 
+    def send_link_confirmation(patient):
+        text = (
+            "LINE登録が完了しました。今後、当院からの安否確認や必要なご連絡を"
+            "このLINEでお送りします。緊急の場合は、LINEではなく当院へお電話ください。"
+        )
+        ok, detail = push_text(patient.get("line_user_id", ""), text)
+        try:
+            append_sent_message(patient, "紐付け完了通知", text, ok, detail)
+        except Exception as e:
+            detail = f"{detail} / 送信履歴保存失敗: {e}"
+        return ok, detail
+
     @app.route("/admin/dashboard")
     def dashboard():
         auth = require_login()
@@ -610,15 +622,26 @@ def register_admin_routes(app):
                     raise ValueError("患者IDと氏名は必須です。")
                 patients = load_patients()
                 existing = next((p for p in patients if p.get("patient_id") == patient_id), None)
+                should_notify_linked = False
                 if existing:
+                    old_line_user_id = existing.get("line_user_id", "").strip()
                     existing.update({"name": name, "phone": phone, "line_user_id": line_user_id})
+                    should_notify_linked = bool(line_user_id and line_user_id != old_line_user_id)
                     message = "患者情報を更新しました。"
                 else:
-                    patients.append({"patient_id": patient_id, "name": name, "phone": phone, "line_user_id": line_user_id})
+                    existing = {"patient_id": patient_id, "name": name, "phone": phone, "line_user_id": line_user_id}
+                    patients.append(existing)
+                    should_notify_linked = bool(line_user_id)
                     message = "患者を登録しました。"
                 save_patients(patients)
                 if line_user_id:
                     remove_linked_pending_users(patients=patients, extra_line_user_ids=[line_user_id])
+                if should_notify_linked:
+                    ok, detail = send_link_confirmation(existing)
+                    if ok:
+                        message += " LINEへ紐付け完了メッセージを送信しました。"
+                    else:
+                        message += f" ただし、LINE通知は送信できませんでした: {detail}"
             except Exception as e:
                 error_message = f"保存エラー: {e}"
 
@@ -636,11 +659,15 @@ def register_admin_routes(app):
         line_user_id = request.form.get("line_user_id", "").strip()
         patient_id = request.form.get("patient_id", "").strip()
         patients = load_patients()
+        linked_patient = None
         for patient in patients:
             if patient.get("patient_id") == patient_id:
                 patient["line_user_id"] = line_user_id
+                linked_patient = patient
         save_patients(patients)
         remove_linked_pending_users(patients=patients, extra_line_user_ids=[line_user_id])
+        if linked_patient:
+            send_link_confirmation(linked_patient)
         return redirect(active_admin_path("/admin/register"))
 
     @app.route("/admin/responders")
