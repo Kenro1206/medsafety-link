@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <div class="section-title">送信履歴</div>
+  <div class="muted" style="margin-bottom:12px;">全 {{ sent_total_count }} 件のうち、最新200件を表示しています。</div>
+  <table>
+    <tr><th>時刻</th><th>患者ID</th><th>氏名</th><th>LINE user_id</th><th>種別</th><th>送信内容</th><th>結果</th><th>詳細</th></tr>
+    {% for r in sent_messages %}
+      <tr>
+        <td>{{ r.timestamp }}</td>
+        <td>{{ r.patient_id }}</td>
+        <td>{{ r.name }}</td>
+        <td style="word-break:break-all;">{{ r.line_user_id }}</td>
+        <td>{{ r.send_type }}</td>
+        <td style="white-space:pre-wrap;">{{ r.message }}</td>
+        <td>{% if r.ok == 'TRUE' %}<span class="success">成功</span>{% else %}<span class="error">失敗</span>{% endif %}</td>
+        <td>{{ r.detail }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" style="text-align:center;color:#666;">送信履歴がありません。</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% endblock %}

@@ -687,18 +687,29 @@ def register_admin_routes(app):
         responses = safe_call(load_responses, [])
         responses = sorted(responses, key=lambda r: r.get("timestamp", ""), reverse=True)
         responses = with_jst_timestamps(responses)
-        sent_messages = safe_call(load_sent_messages, [])
-        sent_messages = sorted(sent_messages, key=lambda r: r.get("timestamp", ""), reverse=True)
-        sent_messages = with_jst_timestamps(sent_messages)
         return render_template(
             "responses.html",
             title="回答履歴",
             responses=responses[:200],
-            sent_messages=sent_messages[:200],
-            sent_total_count=len(sent_messages),
             total_count=len(responses),
             default_message=default_message("individual_default"),
             individual_templates=individual_templates(),
+        )
+
+    @app.route("/admin/sent_messages")
+    def sent_messages_history():
+        auth = require_login()
+        if auth:
+            return auth
+
+        sent_messages = safe_call(load_sent_messages, [])
+        sent_messages = sorted(sent_messages, key=lambda r: r.get("timestamp", ""), reverse=True)
+        sent_messages = with_jst_timestamps(sent_messages)
+        return render_template(
+            "sent_messages.html",
+            title="送信履歴",
+            sent_messages=sent_messages[:200],
+            sent_total_count=len(sent_messages),
         )
 
     @app.route("/admin/responses/handle", methods=["POST"])
