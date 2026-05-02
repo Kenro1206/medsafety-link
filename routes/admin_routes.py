@@ -15,6 +15,7 @@ from services.sheets_service import (
     get_spreadsheet_id,
     get_spreadsheet_titles,
     get_system_mode,
+    ensure_spreadsheet_schema,
     append_sent_message,
     load_patients,
     load_pending_users,
@@ -316,6 +317,35 @@ def register_admin_routes(app):
                 title="Google接続診断",
                 success=False,
                 result_text="\n".join(lines),
+                back_url="/admin/settings",
+                settings=load_settings(),
+            )
+
+    @app.route("/admin/google/init")
+    def google_init():
+        auth = require_login()
+        if auth:
+            return auth
+
+        try:
+            initialized = ensure_spreadsheet_schema()
+            detail = "必要なシート構成を確認しました。"
+            if initialized:
+                detail += " 初期化/更新: " + ", ".join(initialized)
+            return render_template(
+                "setup_result.html",
+                title="Googleシート初期化",
+                success=True,
+                result_text=detail,
+                back_url="/admin/settings",
+                settings=load_settings(),
+            )
+        except Exception as e:
+            return render_template(
+                "setup_result.html",
+                title="Googleシート初期化",
+                success=False,
+                result_text=f"Googleシート初期化中にエラーが発生しました: {e}",
                 back_url="/admin/settings",
                 settings=load_settings(),
             )

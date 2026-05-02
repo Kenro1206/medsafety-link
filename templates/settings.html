@@ -13,6 +13,37 @@
     多施設で利用する場合、施設ごとに別々のトークンやスプレッドシートIDを保存できます。
   </div>
 
+  <div style="padding:14px;border:1px solid #d9e7ff;background:#f8fbff;border-radius:8px;margin-bottom:18px;">
+    <strong>初回設定で用意するもの</strong>
+    <ul style="margin-bottom:8px;">
+      <li>
+        <strong>LINE公式アカウント / LINE DevelopersのMessaging APIチャネル</strong><br>
+        <span class="muted">
+          患者さんへ一斉送信・個別送信を行い、返信を受け取るために使います。
+          <a href="https://manager.line.biz/" target="_blank" rel="noopener">LINE Official Account Manager</a> /
+          <a href="https://developers.line.biz/console/" target="_blank" rel="noopener">LINE Developers Console</a>
+        </span>
+      </li>
+      <li style="margin-top:8px;">
+        <strong>Googleスプレッドシート</strong><br>
+        <span class="muted">
+          患者一覧、安否回答、送信履歴などを保存します。
+          <a href="https://docs.google.com/spreadsheets/" target="_blank" rel="noopener">Googleスプレッドシートを開く</a>
+        </span>
+      </li>
+      <li style="margin-top:8px;">
+        <strong>Google CloudのサービスアカウントJSON</strong><br>
+        <span class="muted">
+          MedSafety Linkがスプレッドシートへ読み書きするための認証ファイルです。
+          <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>
+        </span>
+      </li>
+    </ul>
+    <div class="muted">
+      まずLINEのチャネルアクセストークン、サービスアカウントJSON、スプレッドシートIDを設定し、保存後に「LINE接続診断」「Google接続診断」「Googleシート初期化」を順に確認してください。
+    </div>
+  </div>
+
   <form method="POST" action="/admin/settings/save" enctype="multipart/form-data">
 
     <div class="section-title">施設情報</div>
@@ -189,6 +220,7 @@
     <a href="/admin/line/status"><button type="button">LINE接続診断</button></a>
     <a href="/admin/webhook/status"><button type="button">Webhook受信診断</button></a>
     <a href="/admin/google/status"><button type="button">Google接続診断</button></a>
+    <a href="/admin/google/init"><button type="button">Googleシート初期化</button></a>
     {% if can_manage_institutions %}
       <a href="/admin/settings/storage"><button type="button">設定保存先診断</button></a>
     {% endif %}
