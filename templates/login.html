@@ -31,6 +31,11 @@
     <button type="submit">ログイン</button>
   </form>
 
+  <div style="margin-top:14px;border-top:1px solid #eee;padding-top:14px;">
+    <a href="/facility/register"><button type="button" style="background:#188038;">新規施設登録</button></a>
+    <div class="muted" style="margin-top:8px;">初めて利用する施設は、施設IDとパスワードを作成してください。</div>
+  </div>
+
   {% if message %}
     <div class="error" style="margin-top:12px;">{{ message }}</div>
   {% endif %}

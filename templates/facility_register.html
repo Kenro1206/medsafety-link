@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% set show_menu = false %}
+
+{% block content %}
+
+<div class="card login-card">
+  <form method="POST">
+    <div class="form-row">
+      <label for="name">施設名</label><br>
+      <input type="text" id="name" name="name" required>
+    </div>
+
+    <div class="form-row">
+      <label for="department">診療科名</label><br>
+      <input type="text" id="department" name="department">
+    </div>
+
+    <div class="form-row">
+      <label for="institution_id">施設ID</label><br>
+      <input type="text" id="institution_id" name="institution_id" autocomplete="username" required>
+      <div class="muted">3〜40文字の半角英数字、ハイフン、アンダースコアが使えます。</div>
+    </div>
+
+    <div class="form-row">
+      <label for="password">パスワード</label><br>
+      <input type="password" id="password" name="password" autocomplete="new-password" required>
+    </div>
+
+    <div class="form-row">
+      <label for="password_confirm">パスワード確認</label><br>
+      <input type="password" id="password_confirm" name="password_confirm" autocomplete="new-password" required>
+    </div>
+
+    <button type="submit">登録して設定へ進む</button>
+  </form>
+
+  <div style="margin-top:14px;">
+    <a href="/login">ログイン画面へ戻る</a>
+  </div>
+
+  {% if message %}
+    <div class="error" style="margin-top:12px;">{{ message }}</div>
+  {% endif %}
+</div>
+
+{% endblock %}
