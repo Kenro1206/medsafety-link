@@ -1,7 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="card">
+<style>
+  .dashboard-summary {
+    position: sticky;
+    top: var(--dashboard-sticky-top, 0px);
+    z-index: 60;
+  }
+
+  .dashboard-scroll-area {
+    padding-top: 2px;
+  }
+</style>
+
+<div class="card dashboard-summary">
   <div class="section-title">運用状況</div>
   <p><strong>施設ID:</strong> {{ institution_id }}　<strong>施設名:</strong> {{ institution.name }}　<strong>現在モード:</strong> {{ current_mode }}</p>
   <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;">
@@ -14,6 +26,7 @@
   </div>
 </div>
 
+<div class="dashboard-scroll-area">
 <div class="card">
   <div class="section-title">重症アラート</div>
   {% if severe_rows %}
@@ -74,5 +87,19 @@
   </table>
   <p><a href="/admin/responses">すべての回答履歴を見る</a></p>
 </div>
+</div>
+
+<script>
+(function() {
+  function updateDashboardStickyTop() {
+    const stickyTop = document.querySelector(".sticky-top");
+    const height = stickyTop ? stickyTop.getBoundingClientRect().height : 0;
+    document.documentElement.style.setProperty("--dashboard-sticky-top", height + "px");
+  }
+
+  updateDashboardStickyTop();
+  window.addEventListener("resize", updateDashboardStickyTop);
+})();
+</script>
 
 {% endblock %}

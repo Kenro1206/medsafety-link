@@ -229,7 +229,7 @@ def register_admin_routes(app):
             return auth
 
         patients = safe_call(load_patients, [])
-        pending_users = safe_call(load_pending_users, [])
+        pending_users = safe_call(lambda: remove_linked_pending_users(patients=patients), [])
         responses = safe_call(load_responses, [])
         latest = safe_call(get_latest_responses, {})
         current_mode = safe_call(get_system_mode, "NORMAL")
