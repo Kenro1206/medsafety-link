@@ -266,6 +266,11 @@
       color: #2F6FE4;
     }
 
+    .page-title-sticky {
+      margin: 10px 0 0;
+      font-size: 24px;
+    }
+
     @media (max-width: 768px) {
       body {
         margin: 0;
@@ -341,11 +346,10 @@
     <span class="notification-watch-status muted">通知音: 無効</span>
   </div>
   {% endif %}
+  <h2 class="page-title-sticky">{{ title }}</h2>
   </div>
 
   <div class="page-shell">
-  <h2>{{ title }}</h2>
-
   {% block content %}{% endblock %}
 
   <div class="support-note">
