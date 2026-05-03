@@ -23,9 +23,18 @@ def _resolve_settings_path():
 SETTINGS_PATH = _resolve_settings_path()
 AFTER_HOURS_MESSAGE = (
     "ご連絡ありがとうございます。現在は時間外のため、すぐに対応ができません。"
-    "診療時間内に順次確認いたします。なお、緊急の場合は当院{phone_part}までお電話をして頂いたうえで、"
+    "診療時間内に順次確認いたします。なお、緊急時や急を要する症状がある場合は、"
+    "LINEではなく当院{phone_part}までお電話をして頂いたうえで、"
     "救急外来受診をご検討ください。"
 )
+OLD_AFTER_HOURS_MESSAGES = [
+    "ご連絡ありがとうございます。現在は時間外のため、診療時間内に確認いたします。",
+    (
+        "ご連絡ありがとうございます。現在は時間外のため、すぐに対応ができません。"
+        "診療時間内に順次確認いたします。なお、緊急の場合は当院{phone_part}までお電話をして頂いたうえで、"
+        "救急外来受診をご検討ください。"
+    ),
+]
 
 
 def _default_messages():
@@ -130,13 +139,15 @@ def normalize_settings(data):
 
     _merge_missing(data, defaults)
 
-    old_after_hours = "ご連絡ありがとうございます。現在は時間外のため、診療時間内に確認いたします。"
     messages = data.setdefault("messages", {})
-    if messages.get("auto_reply_after_hours") == old_after_hours:
+    if messages.get("auto_reply_after_hours") in OLD_AFTER_HOURS_MESSAGES:
         messages["auto_reply_after_hours"] = AFTER_HOURS_MESSAGE
 
     for inst in data.get("institutions", {}).values():
         _merge_missing(inst, _default_institution())
+        inst_messages = inst.setdefault("messages", {})
+        if inst_messages.get("auto_reply_after_hours") in OLD_AFTER_HOURS_MESSAGES:
+            inst_messages["auto_reply_after_hours"] = AFTER_HOURS_MESSAGE
         inst.setdefault("line", {}).setdefault("bot_user_id", "")
         inst["safety_reply_options"] = _normalize_safety_reply_options(inst.get("safety_reply_options"))
 
