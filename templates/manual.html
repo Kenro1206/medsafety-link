@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  .manual-content {
+    line-height: 1.75;
+  }
+
+  .manual-content h1 {
+    margin-top: 0;
+    color: #2F6FE4;
+  }
+
+  .manual-content h2 {
+    margin-top: 28px;
+    padding-top: 14px;
+    border-top: 1px solid #e5e5e5;
+    color: #2F6FE4;
+  }
+
+  .manual-content h3 {
+    margin-top: 20px;
+  }
+
+  .manual-content table {
+    margin: 12px 0 18px;
+  }
+
+  .manual-content pre {
+    white-space: pre-wrap;
+    background: #f7f7f7;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    padding: 12px;
+    overflow-x: auto;
+  }
+
+  .manual-content code {
+    background: #f1f3f4;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+
+  .manual-content pre code {
+    background: transparent;
+    padding: 0;
+  }
+</style>
+
+<div class="card manual-content">
+  {{ body|safe }}
+</div>
+{% endblock %}

@@ -1,4 +1,5 @@
 import copy
+import html
 import os
 import re
 from flask import make_response, request, render_template, redirect, session, jsonify
@@ -79,6 +80,118 @@ def register_admin_routes(app):
             item["timestamp"] = format_jst_timestamp(item.get("timestamp", ""))
             formatted.append(item)
         return formatted
+
+    def manual_markdown_to_html(markdown_text):
+        html_parts = []
+        paragraph = []
+        list_type = None
+        table_rows = []
+        in_code = False
+        code_lines = []
+
+        def inline(text):
+            escaped = html.escape(text)
+            escaped = re.sub(
+                r"(https?://[^\s<]+)",
+                r'<a href="\1" target="_blank" rel="noopener">\1</a>',
+                escaped,
+            )
+            escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
+            return escaped
+
+        def flush_paragraph():
+            if paragraph:
+                html_parts.append("<p>" + inline(" ".join(paragraph)) + "</p>")
+                paragraph.clear()
+
+        def flush_list():
+            nonlocal list_type
+            if list_type:
+                html_parts.append(f"</{list_type}>")
+                list_type = None
+
+        def flush_table():
+            if not table_rows:
+                return
+            rows = list(table_rows)
+            table_rows.clear()
+            html_parts.append("<table>")
+            separator_index = 1 if len(rows) > 1 and all(set(cell) <= {"-", ":", " "} for cell in rows[1]) else None
+            for index, row in enumerate(rows):
+                if index == separator_index:
+                    continue
+                tag = "th" if separator_index == 1 and index == 0 else "td"
+                cells = "".join(f"<{tag}>{inline(cell.strip())}</{tag}>" for cell in row)
+                html_parts.append(f"<tr>{cells}</tr>")
+            html_parts.append("</table>")
+
+        def close_blocks():
+            flush_paragraph()
+            flush_list()
+            flush_table()
+
+        for raw_line in markdown_text.splitlines():
+            line = raw_line.rstrip()
+
+            if line.startswith("```"):
+                if in_code:
+                    html_parts.append("<pre><code>" + html.escape("\n".join(code_lines)) + "</code></pre>")
+                    code_lines = []
+                    in_code = False
+                else:
+                    close_blocks()
+                    in_code = True
+                continue
+
+            if in_code:
+                code_lines.append(line)
+                continue
+
+            if not line.strip():
+                close_blocks()
+                continue
+
+            if line.startswith("|") and line.endswith("|"):
+                flush_paragraph()
+                flush_list()
+                table_rows.append([cell for cell in line.strip("|").split("|")])
+                continue
+            flush_table()
+
+            heading = re.match(r"^(#{1,3})\s+(.+)$", line)
+            if heading:
+                close_blocks()
+                level = len(heading.group(1))
+                html_parts.append(f"<h{level}>{inline(heading.group(2))}</h{level}>")
+                continue
+
+            unordered = re.match(r"^-\s+(.+)$", line)
+            if unordered:
+                flush_paragraph()
+                if list_type != "ul":
+                    flush_list()
+                    html_parts.append("<ul>")
+                    list_type = "ul"
+                html_parts.append(f"<li>{inline(unordered.group(1))}</li>")
+                continue
+
+            ordered = re.match(r"^\d+\.\s+(.+)$", line)
+            if ordered:
+                flush_paragraph()
+                if list_type != "ol":
+                    flush_list()
+                    html_parts.append("<ol>")
+                    list_type = "ol"
+                html_parts.append(f"<li>{inline(ordered.group(1))}</li>")
+                continue
+
+            flush_list()
+            paragraph.append(line.strip())
+
+        close_blocks()
+        if in_code:
+            html_parts.append("<pre><code>" + html.escape("\n".join(code_lines)) + "</code></pre>")
+        return "\n".join(html_parts)
 
     def remove_linked_pending_users(patients=None, pending_users=None, extra_line_user_ids=None):
         patients = patients if patients is not None else load_patients()
@@ -904,6 +1017,16 @@ def register_admin_routes(app):
             """,
         }.get(topic, "ヘルプは準備中です。")
         return render_template("help.html", title="ヘルプ", body=body)
+
+    @app.route("/admin/manual")
+    def manual_page():
+        auth = require_login()
+        if auth:
+            return auth
+        manual_path = os.path.join(app.root_path, "MANUAL.md")
+        with open(manual_path, "r", encoding="utf-8") as f:
+            body = manual_markdown_to_html(f.read())
+        return render_template("manual.html", title="運用マニュアル", body=body)
 
     def send_to_patients(patients, message, with_safety_buttons=False, send_type="送信"):
         results = []
