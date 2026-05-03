@@ -477,7 +477,6 @@ def register_admin_routes(app):
             inst["name"] = request.form.get("hospital_name", "").strip()
             inst["department"] = request.form.get("department", "").strip()
             inst["phone"] = request.form.get("hospital_phone", "").strip()
-            inst["password"] = request.form.get("password", "").strip() or inst.get("password", "admin")
             old_line_token = inst["line"].get("channel_access_token", "").strip()
             new_line_token = request.form.get("line_token", "").strip()
             manual_bot_user_id = request.form.get("line_bot_user_id", "").strip()
@@ -545,6 +544,48 @@ def register_admin_routes(app):
             title="設定",
             institution_id=get_current_institution_id(),
             institution=s.get("institutions", {}).get(get_current_institution_id(), get_current_institution()),
+            current_mode=safe_call(get_system_mode, "NORMAL"),
+            service_account_email=safe_call(get_service_account_email, ""),
+            message=message,
+            error_message=error_message,
+            help_link=help_link
+        )
+
+    @app.route("/admin/settings/password", methods=["POST"])
+    def admin_password_save():
+        auth = require_login()
+        if auth:
+            return auth
+
+        institution_id = get_current_institution_id()
+        s = load_settings()
+        message = ""
+        error_message = ""
+        try:
+            inst = s["institutions"][institution_id]
+            current_password = request.form.get("current_password", "").strip()
+            new_password = request.form.get("new_password", "").strip()
+            new_password_confirm = request.form.get("new_password_confirm", "").strip()
+
+            if current_password != inst.get("password", ""):
+                raise ValueError("現在のパスワードが違います。")
+            if len(new_password) < 8:
+                raise ValueError("新しいパスワードは8文字以上にしてください。")
+            if new_password != new_password_confirm:
+                raise ValueError("新しいパスワード確認が一致しません。")
+
+            inst["password"] = new_password
+            save_settings(s)
+            s = load_settings()
+            message = "ログインパスワードを変更しました。次回ログインから新しいパスワードを使用してください。"
+        except Exception as e:
+            error_message = f"パスワード変更エラー: {e}"
+
+        return render_template(
+            "settings.html",
+            title="設定",
+            institution_id=institution_id,
+            institution=s.get("institutions", {}).get(institution_id, get_current_institution()),
             current_mode=safe_call(get_system_mode, "NORMAL"),
             service_account_email=safe_call(get_service_account_email, ""),
             message=message,

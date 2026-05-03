@@ -68,15 +68,6 @@
       </div>
     </div>
 
-    <div class="form-row">
-      <label>ログインパスワード</label><br>
-      <input name="password" value="{{ institution.password }}">
-      <div class="muted">
-        この施設IDで管理画面にログインするためのパスワードです。
-        実働時は8文字以上で、英字・数字を混ぜたものを推奨します。
-      </div>
-    </div>
-
     <div class="section-title">LINE設定</div>
 
     <div class="form-row">
@@ -224,6 +215,29 @@
     {% if can_manage_institutions %}
       <a href="/admin/settings/storage"><button type="button">設定保存先診断</button></a>
     {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="section-title">ログインパスワード変更</div>
+  <form method="POST" action="/admin/settings/password">
+    <div class="form-row">
+      <label>現在のパスワード</label><br>
+      <input type="password" name="current_password" autocomplete="current-password" required>
+    </div>
+
+    <div class="form-row">
+      <label>新しいパスワード</label><br>
+      <input type="password" name="new_password" autocomplete="new-password" required>
+      <div class="muted">8文字以上で、英字・数字を混ぜたものを推奨します。</div>
+    </div>
+
+    <div class="form-row">
+      <label>新しいパスワード確認</label><br>
+      <input type="password" name="new_password_confirm" autocomplete="new-password" required>
+    </div>
+
+    <button type="submit">パスワードを変更</button>
   </form>
 </div>
 
