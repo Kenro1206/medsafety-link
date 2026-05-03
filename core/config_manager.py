@@ -68,6 +68,7 @@ def _default_institution():
         "name": "未設定",
         "department": "未設定",
         "phone": "",
+        "contact": {"name": "", "email": ""},
         "password": "admin",
         "line": {"channel_access_token": "", "bot_user_id": ""},
         "google": {

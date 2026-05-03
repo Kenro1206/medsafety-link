@@ -477,6 +477,8 @@ def register_admin_routes(app):
             inst["name"] = request.form.get("hospital_name", "").strip()
             inst["department"] = request.form.get("department", "").strip()
             inst["phone"] = request.form.get("hospital_phone", "").strip()
+            inst.setdefault("contact", {})["name"] = request.form.get("contact_name", "").strip()
+            inst.setdefault("contact", {})["email"] = request.form.get("contact_email", "").strip()
             old_line_token = inst["line"].get("channel_access_token", "").strip()
             new_line_token = request.form.get("line_token", "").strip()
             manual_bot_user_id = request.form.get("line_bot_user_id", "").strip()
@@ -707,6 +709,10 @@ def register_admin_routes(app):
                         "name": request.form.get("name", "").strip() or institution_id,
                         "department": request.form.get("department", "").strip(),
                         "phone": "",
+                        "contact": {
+                            "name": request.form.get("contact_name", "").strip(),
+                            "email": request.form.get("contact_email", "").strip(),
+                        },
                         "password": request.form.get("password", "").strip() or "admin",
                         "line": {"channel_access_token": "", "bot_user_id": ""},
                         "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},
@@ -723,6 +729,8 @@ def register_admin_routes(app):
                         raise ValueError("施設が見つかりません。")
                     inst["name"] = request.form.get("name", "").strip() or inst.get("name", institution_id)
                     inst["department"] = request.form.get("department", "").strip()
+                    inst.setdefault("contact", {})["name"] = request.form.get("contact_name", "").strip()
+                    inst.setdefault("contact", {})["email"] = request.form.get("contact_email", "").strip()
                     password = request.form.get("password", "").strip()
                     if password:
                         inst["password"] = password

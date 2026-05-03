@@ -68,6 +68,18 @@
       </div>
     </div>
 
+    <div class="form-row">
+      <label>施設担当者名</label><br>
+      <input name="contact_name" value="{{ institution.contact.name if institution.contact is defined else '' }}">
+      <div class="muted">パスワードを忘れた場合や、設定確認が必要な場合に連絡する担当者名です。</div>
+    </div>
+
+    <div class="form-row">
+      <label>施設担当者メールアドレス</label><br>
+      <input type="email" name="contact_email" value="{{ institution.contact.email if institution.contact is defined else '' }}">
+      <div class="muted">パスワード再設定や重要なお知らせの連絡先として使用します。</div>
+    </div>
+
     <div class="section-title">LINE設定</div>
 
     <div class="form-row">

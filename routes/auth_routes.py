@@ -96,6 +96,7 @@ def register_auth_routes(app):
                     "name": name,
                     "department": department,
                     "phone": "",
+                    "contact": {"name": "", "email": ""},
                     "password": password,
                     "line": {"channel_access_token": "", "bot_user_id": ""},
                     "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},

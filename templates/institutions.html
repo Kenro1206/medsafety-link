@@ -10,11 +10,13 @@
     施設IDはあとから変更せず、必要な場合は新しい施設IDを追加してください。
     施設を追加できるのはシステム管理者だけです。別施設を操作中でも、この画面では施設追加を続けられます。
   </div>
-  <form method="POST" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;">
+  <form method="POST" style="display:grid;grid-template-columns:repeat(6,1fr) auto;gap:10px;align-items:end;">
     <input type="hidden" name="action" value="create">
     <div><label>施設ID</label><br><input name="institution_id" placeholder="例: clinic_tokyo" required><div class="muted">半角英数字、ハイフン、アンダースコアが使えます。</div></div>
     <div><label>施設名</label><br><input name="name" required><div class="muted">画面や通知に表示する名称です。</div></div>
     <div><label>診療科</label><br><input name="department"><div class="muted">担当部署名です。</div></div>
+    <div><label>担当者</label><br><input name="contact_name"><div class="muted">パスワード再設定時の連絡先です。</div></div>
+    <div><label>担当者メール</label><br><input type="email" name="contact_email"><div class="muted">連絡可能なメールアドレスです。</div></div>
     <div><label>初期パスワード</label><br><input name="password" type="text" required><div class="muted">追加後、施設設定から変更できます。</div></div>
     <button type="submit">追加</button>
   </form>
@@ -28,7 +30,7 @@
     削除は取り消せません。現在操作中の施設と最後の1施設は削除できません。
   </div>
   <table>
-    <tr><th>施設ID</th><th>施設名</th><th>診療科</th><th>パスワード変更</th><th>操作</th></tr>
+    <tr><th>施設ID</th><th>施設名</th><th>診療科</th><th>担当者</th><th>担当者メール</th><th>パスワード変更</th><th>操作</th></tr>
     {% for institution_id, inst in institutions.items() %}
       <tr>
         <td style="word-break:break-all;">{{ institution_id }}{% if institution_id == current_institution_id %}<br><span class="success">現在操作中</span>{% endif %}</td>
@@ -39,6 +41,8 @@
             <input name="name" value="{{ inst.name }}">
         </td>
         <td><input name="department" value="{{ inst.department }}"></td>
+        <td><input name="contact_name" value="{{ inst.contact.name if inst.contact is defined else '' }}"></td>
+        <td><input type="email" name="contact_email" value="{{ inst.contact.email if inst.contact is defined else '' }}"></td>
         <td><input name="password" placeholder="空欄なら変更しない"></td>
         <td style="min-width:160px;">
             <button type="submit">更新</button>
