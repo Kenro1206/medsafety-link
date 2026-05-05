@@ -842,6 +842,22 @@ def register_admin_routes(app):
         unlinked_patients = [p for p in patients if not p.get("line_user_id")]
         return render_template("register.html", title="患者登録", patients=patients, pending_users=pending_users, unlinked_patients=unlinked_patients, message=message, error_message=error_message)
 
+    @app.route("/admin/register/delete", methods=["POST"])
+    def delete_patient():
+        auth = require_login()
+        if auth:
+            return auth
+
+        patient_id = request.form.get("patient_id", "").strip()
+        patients = load_patients()
+        patient = next((p for p in patients if p.get("patient_id") == patient_id), None)
+        if not patient:
+            return redirect(active_admin_path("/admin/register"))
+
+        remaining = [p for p in patients if p.get("patient_id") != patient_id]
+        save_patients(remaining)
+        return redirect(active_admin_path("/admin/register"))
+
     @app.route("/admin/link", methods=["POST"])
     def link_patient():
         auth = require_login()

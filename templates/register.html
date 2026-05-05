@@ -39,13 +39,41 @@
 
 <div class="card">
   <div class="section-title">患者一覧</div>
+  <div class="muted" style="margin-bottom:10px;">
+    削除すると患者一覧から外れます。回答履歴・送信履歴は記録として残ります。
+  </div>
   <table>
-    <tr><th>患者ID</th><th>氏名</th><th>電話番号</th><th>LINE user_id</th><th>状態</th></tr>
+    <tr><th>患者ID</th><th>氏名</th><th>電話番号</th><th>LINE user_id</th><th>状態</th><th>操作</th></tr>
     {% for p in patients %}
-      <tr><td>{{ p.patient_id }}</td><td>{{ p.name }}</td><td>{{ p.phone }}</td><td style="word-break:break-all;">{{ p.line_user_id }}</td><td>{% if p.line_user_id %}<span class="success">登録済み</span>{% else %}<span class="error">未紐付け</span>{% endif %}</td></tr>
+      <tr>
+        <td>{{ p.patient_id }}</td>
+        <td>{{ p.name }}</td>
+        <td>{{ p.phone }}</td>
+        <td style="word-break:break-all;">{{ p.line_user_id }}</td>
+        <td>{% if p.line_user_id %}<span class="success">登録済み</span>{% else %}<span class="error">未紐付け</span>{% endif %}</td>
+        <td>
+          <form method="POST" action="/admin/register/delete" class="delete-patient-form">
+            <input type="hidden" name="patient_id" value="{{ p.patient_id }}">
+            <input type="hidden" name="patient_name" value="{{ p.name }}">
+            <button type="submit" style="background:#d93025;">削除</button>
+          </form>
+        </td>
+      </tr>
     {% else %}
-      <tr><td colspan="5" style="text-align:center;color:#666;">患者データがありません。</td></tr>
+      <tr><td colspan="6" style="text-align:center;color:#666;">患者データがありません。</td></tr>
     {% endfor %}
   </table>
 </div>
+
+<script>
+document.querySelectorAll(".delete-patient-form").forEach(form => {
+  form.addEventListener("submit", event => {
+    const patientId = form.querySelector('input[name="patient_id"]').value;
+    const patientName = form.querySelector('input[name="patient_name"]').value;
+    if (!confirm(`患者「${patientId} ${patientName}」を患者一覧から削除します。よろしいですか？`)) {
+      event.preventDefault();
+    }
+  });
+});
+</script>
 {% endblock %}
