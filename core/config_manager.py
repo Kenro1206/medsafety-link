@@ -73,7 +73,8 @@ def _default_institution():
         "line": {"channel_access_token": "", "bot_user_id": ""},
         "google": {
             "service_account_file": "./service_account.json",
-            "spreadsheet_id": ""
+            "spreadsheet_id": "",
+            "drive_folder_id": ""
         },
         "admins": {"line_user_ids": []},
         "messages": _default_messages(),

@@ -15,7 +15,9 @@
         <td class="event-type-col">{{ r.event_type }}</td>
         <td>
           <strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span>
-          {% if r.media_id %}
+          {% if r.media_url %}
+            <br><a href="{{ r.media_url }}" target="_blank" rel="noopener">画像を開く</a>
+          {% elif r.media_id %}
             <br><a href="/admin/line/content/{{ r.media_id }}" target="_blank" rel="noopener">画像を開く</a>
           {% endif %}
         </td>

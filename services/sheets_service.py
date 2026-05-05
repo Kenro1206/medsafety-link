@@ -1,22 +1,26 @@
 import json
 import os
+import uuid
 from urllib.parse import quote
 
 from core.config_manager import load_settings
 from core.institution_context import get_current_institution
 from core.time_utils import now_jst_iso
 
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
+]
 PATIENTS_RANGE = "patients!A:F"
 PENDING_RANGE = "pending_users!A:D"
-RESPONSES_RANGE = "responses!A:I"
+RESPONSES_RANGE = "responses!A:J"
 SENT_MESSAGES_RANGE = "sent_messages!A:H"
 SYSTEM_MODE_RANGE = "system_mode!A:A"
 
 REQUIRED_SHEETS = {
     "patients": [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes"]],
     "pending_users": [["timestamp", "line_user_id", "patient_name", "display_text"]],
-    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled", "media_id"]],
+    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled", "media_id", "media_url"]],
     "sent_messages": [["timestamp", "patient_id", "name", "line_user_id", "send_type", "message", "ok", "detail"]],
     "system_mode": [["mode"], ["NORMAL"]],
 }
@@ -182,6 +186,23 @@ def sheets_api_request(method, path, **kwargs):
     return {}
 
 
+def drive_api_request(method, url, **kwargs):
+    session = get_authorized_session()
+    response = session.request(method, url, timeout=30, **kwargs)
+    if response.status_code >= 400:
+        if response.status_code == 403:
+            email = get_service_account_email() or "サービスアカウントの client_email"
+            raise ValueError(
+                "Google Driveへの保存権限がありません。"
+                f"画像保存先フォルダを {email} に編集者として共有してください。"
+                f" また、Google Drive APIが有効か確認してください。 詳細: {response.text}"
+            )
+        raise ValueError(f"Google Drive API error: status={response.status_code}, body={response.text}")
+    if response.text:
+        return response.json()
+    return {}
+
+
 def get_spreadsheet_id():
     institution = get_current_institution()
     spreadsheet_id = ""
@@ -195,6 +216,13 @@ def get_spreadsheet_id():
         raise ValueError("スプレッドシートIDが未設定です。")
 
     return spreadsheet_id
+
+
+def get_drive_folder_id():
+    institution = get_current_institution()
+    if not institution:
+        return ""
+    return institution.get("google", {}).get("drive_folder_id", "").strip()
 
 
 def get_spreadsheet_titles():
@@ -227,6 +255,33 @@ def update_sheet(range_name, values):
 
 def clear_sheet(range_name):
     sheets_api_request("POST", f"/values/{quote(range_name, safe='')}:clear", json={})
+
+
+def upload_drive_file(content, filename, mime_type="application/octet-stream"):
+    folder_id = get_drive_folder_id()
+    if not folder_id:
+        return ""
+
+    boundary = f"medsafety-{uuid.uuid4().hex}"
+    metadata = {"name": filename}
+    if folder_id:
+        metadata["parents"] = [folder_id]
+
+    body = (
+        f"--{boundary}\r\n"
+        "Content-Type: application/json; charset=UTF-8\r\n\r\n"
+        f"{json.dumps(metadata, ensure_ascii=False)}\r\n"
+        f"--{boundary}\r\n"
+        f"Content-Type: {mime_type}\r\n\r\n"
+    ).encode("utf-8") + content + f"\r\n--{boundary}--\r\n".encode("utf-8")
+
+    result = drive_api_request(
+        "POST",
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
+        headers={"Content-Type": f"multipart/related; boundary={boundary}"},
+        data=body,
+    )
+    return result.get("webViewLink") or (f"https://drive.google.com/file/d/{result.get('id')}/view" if result.get("id") else "")
 
 
 def rows_to_dicts(rows):
@@ -337,8 +392,8 @@ def load_responses():
     return normalized
 
 
-def append_response(patient, user_id, event_type, code, label, media_id=""):
-    update_sheet("responses!A1:I1", REQUIRED_SHEETS["responses"])
+def append_response(patient, user_id, event_type, code, label, media_id="", media_url=""):
+    update_sheet("responses!A1:J1", REQUIRED_SHEETS["responses"])
     append_sheet(RESPONSES_RANGE, [
         now_jst_iso(),
         patient.get("patient_id", ""),
@@ -348,7 +403,8 @@ def append_response(patient, user_id, event_type, code, label, media_id=""):
         code,
         label,
         "",
-        media_id
+        media_id,
+        media_url
     ])
 
 
@@ -392,7 +448,7 @@ def set_latest_response_handled(patient_id, handled):
         return False
 
     headers = rows[0]
-    while len(headers) < 9:
+    while len(headers) < 10:
         headers.append("handled")
     if "handled" not in headers:
         headers.append("handled")
@@ -417,7 +473,7 @@ def set_latest_response_handled(patient_id, handled):
     while len(target) <= handled_index:
         target.append("")
     target[handled_index] = "TRUE" if handled else ""
-    update_sheet(f"responses!A{best_row_index}:I{best_row_index}", [target[:9]])
+    update_sheet(f"responses!A{best_row_index}:J{best_row_index}", [target[:10]])
     return True
 
 
@@ -427,7 +483,7 @@ def set_response_handled(timestamp, patient_id, handled, line_user_id=""):
         return False
 
     headers = rows[0]
-    while len(headers) < 9:
+    while len(headers) < 10:
         headers.append("handled")
     if "handled" not in headers:
         headers.append("handled")
@@ -445,7 +501,7 @@ def set_response_handled(timestamp, patient_id, handled, line_user_id=""):
             while len(row) <= handled_index:
                 row.append("")
             row[handled_index] = "TRUE" if handled else ""
-            update_sheet(f"responses!A{row_index}:I{row_index}", [row[:9]])
+            update_sheet(f"responses!A{row_index}:J{row_index}", [row[:10]])
             return True
 
     return False
@@ -465,7 +521,7 @@ def ensure_spreadsheet_schema():
 
     initialized = []
     for title, values in REQUIRED_SHEETS.items():
-        rows = read_sheet(f"{title}!A1:I2")
+        rows = read_sheet(f"{title}!A1:J2")
         if not rows:
             update_sheet(f"{title}!A1", values)
             initialized.append(title)

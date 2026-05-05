@@ -99,7 +99,7 @@ def register_auth_routes(app):
                     "contact": {"name": "", "email": ""},
                     "password": password,
                     "line": {"channel_access_token": "", "bot_user_id": ""},
-                    "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},
+                    "google": {"service_account_file": "./service_account.json", "spreadsheet_id": "", "drive_folder_id": ""},
                     "admins": {"line_user_ids": []},
                     "messages": copy.deepcopy(settings.get("messages", {})),
                     "safety_reply_options": copy.deepcopy(settings.get("safety_reply_options", [])),

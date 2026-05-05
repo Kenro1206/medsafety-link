@@ -3,8 +3,8 @@ from flask import request
 from core.institution_context import get_all_institutions, get_current_institution_id, use_institution
 from core.config_manager import load_settings, save_settings
 from core.time_utils import is_business_time, now_jst_iso
-from services.line_service import get_severe_codes, notify_admin, reply_text
-from services.sheets_service import append_response, load_patients, load_pending_users, save_pending_users, get_system_mode
+from services.line_service import get_message_content, get_severe_codes, notify_admin, reply_text
+from services.sheets_service import append_response, load_patients, load_pending_users, save_pending_users, get_system_mode, upload_drive_file
 
 ANSWER_MAP = {
     "1": ("SAFE", "無事"),
@@ -198,7 +198,15 @@ def register_webhook_routes(app):
                     mode = get_system_mode()
                     if message_type == "image":
                         code, label = "PHOTO", "画像を受信しました"
-                        append_response(patient, user_id, mode, code, label, media_id=message_id)
+                        media_url = ""
+                        ok_content, content, mime_type = get_message_content(message_id)
+                        if ok_content:
+                            extension = "jpg" if "jpeg" in mime_type else "png" if "png" in mime_type else "bin"
+                            filename = f"{patient.get('patient_id', 'patient')}_{now_jst_iso().replace(':', '').replace('+', '_')}.{extension}"
+                            media_url = upload_drive_file(content, filename, mime_type)
+                        else:
+                            status["error"] = str(content)
+                        append_response(patient, user_id, mode, code, label, media_id=message_id, media_url=media_url)
                     else:
                         code, label = classify_answer(text)
                         append_response(patient, user_id, mode, code, label)

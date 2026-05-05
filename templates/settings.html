@@ -219,6 +219,17 @@
       </div>
     </div>
 
+    <div class="form-row">
+      <label>画像保存先Google DriveフォルダID</label><br>
+      <input name="drive_folder_id" value="{{ institution.google.drive_folder_id if institution.google.drive_folder_id is defined else '' }}">
+      <div class="muted">
+        足病変などの写真を保存するGoogle DriveフォルダのIDです。
+        DriveフォルダのURL内の <code>/folders/</code> の後ろの文字列を入力します。<br>
+        このフォルダも、上の「スプレッドシート共有先メールアドレス」を<strong>編集者</strong>として共有してください。
+        Google Drive APIが未有効の場合は、Google Cloud Consoleで有効化してください。
+      </div>
+    </div>
+
     <button type="submit">保存</button>
     <a href="/admin/line/status"><button type="button">LINE接続診断</button></a>
     <a href="/admin/webhook/status"><button type="button">Webhook受信診断</button></a>

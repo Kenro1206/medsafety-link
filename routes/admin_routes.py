@@ -268,6 +268,7 @@ def register_admin_routes(app):
                 "code": code or "NO_RESPONSE",
                 "label": response.get("label", "未回答"),
                 "media_id": response.get("media_id", ""),
+                "media_url": response.get("media_url", ""),
                 "handled": handled,
                 "row_class": response_row_class(code, handled, severe_codes),
             })
@@ -519,6 +520,7 @@ def register_admin_routes(app):
                     "text": str(index + 1),
                 })
             inst["google"]["spreadsheet_id"] = request.form.get("spreadsheet_id", "").strip()
+            inst["google"]["drive_folder_id"] = request.form.get("drive_folder_id", "").strip()
             inst["admins"]["line_user_ids"] = [x.strip() for x in request.form.get("admin_ids", "").split(",") if x.strip()]
 
             uploaded = request.files.get("service_account_file")
@@ -716,7 +718,7 @@ def register_admin_routes(app):
                         },
                         "password": request.form.get("password", "").strip() or "admin",
                         "line": {"channel_access_token": "", "bot_user_id": ""},
-                        "google": {"service_account_file": "./service_account.json", "spreadsheet_id": ""},
+                        "google": {"service_account_file": "./service_account.json", "spreadsheet_id": "", "drive_folder_id": ""},
                         "admins": {"line_user_ids": []},
                         "messages": copy.deepcopy(default_settings.get("messages", {})),
                         "safety_reply_options": copy.deepcopy(default_settings.get("safety_reply_options", []))
