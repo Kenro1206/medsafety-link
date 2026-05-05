@@ -13,7 +13,12 @@
         <td>{{ r.name }}</td>
         <td style="word-break:break-all;">{{ r.line_user_id }}</td>
         <td class="event-type-col">{{ r.event_type }}</td>
-        <td><strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span></td>
+        <td>
+          <strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span>
+          {% if r.media_id %}
+            <br><a href="/admin/line/content/{{ r.media_id }}" target="_blank" rel="noopener">画像を開く</a>
+          {% endif %}
+        </td>
         <td>{% if r.handled %}<span class="success">対応済</span>{% else %}<span class="error">未対応</span>{% endif %}</td>
         <td>
           <form method="POST" action="/admin/responses/handle">

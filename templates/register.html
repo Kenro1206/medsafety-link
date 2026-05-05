@@ -5,11 +5,21 @@
 
 <div class="card">
   <div class="section-title">患者の追加・更新</div>
-  <form method="POST" style="display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end;">
+  <form method="POST" style="display:grid;grid-template-columns:repeat(6,1fr) auto;gap:10px;align-items:end;">
     <div><label>患者ID</label><br><input name="patient_id" required></div>
     <div><label>氏名</label><br><input name="name" required></div>
     <div><label>電話番号</label><br><input name="phone"></div>
     <div><label>LINE user_id</label><br><input name="line_user_id"></div>
+    <div>
+      <label>患者区分</label><br>
+      <select name="patient_type">
+        <option value="">未設定</option>
+        <option value="糖尿病">糖尿病</option>
+        <option value="足病変">足病変</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+    <div><label>メモ</label><br><input name="notes" placeholder="例: 右足潰瘍フォロー"></div>
     <button type="submit">保存</button>
   </form>
 </div>
@@ -43,13 +53,15 @@
     削除すると患者一覧から外れます。回答履歴・送信履歴は記録として残ります。
   </div>
   <table>
-    <tr><th>患者ID</th><th>氏名</th><th>電話番号</th><th>LINE user_id</th><th>状態</th><th>操作</th></tr>
+    <tr><th>患者ID</th><th>氏名</th><th>電話番号</th><th>LINE user_id</th><th>患者区分</th><th>メモ</th><th>状態</th><th>操作</th></tr>
     {% for p in patients %}
       <tr>
         <td>{{ p.patient_id }}</td>
         <td>{{ p.name }}</td>
         <td>{{ p.phone }}</td>
         <td style="word-break:break-all;">{{ p.line_user_id }}</td>
+        <td>{{ p.patient_type }}</td>
+        <td>{{ p.notes }}</td>
         <td>{% if p.line_user_id %}<span class="success">登録済み</span>{% else %}<span class="error">未紐付け</span>{% endif %}</td>
         <td>
           <form method="POST" action="/admin/register/delete" class="delete-patient-form">
@@ -60,7 +72,7 @@
         </td>
       </tr>
     {% else %}
-      <tr><td colspan="6" style="text-align:center;color:#666;">患者データがありません。</td></tr>
+      <tr><td colspan="8" style="text-align:center;color:#666;">患者データがありません。</td></tr>
     {% endfor %}
   </table>
 </div>

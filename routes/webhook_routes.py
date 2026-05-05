@@ -137,6 +137,7 @@ def register_webhook_routes(app):
                 "message_type": event.get("message", {}).get("type", ""),
                 "line_user_id": event.get("source", {}).get("userId", ""),
                 "text": "",
+                "message_id": event.get("message", {}).get("id", ""),
                 "destination_institution_id": "",
                 "matched_institution_id": "",
                 "patient_id": "",
@@ -145,7 +146,11 @@ def register_webhook_routes(app):
                 "error": "",
             }
             try:
+                message_type = event.get("message", {}).get("type", "")
+                message_id = event.get("message", {}).get("id", "")
                 text = get_event_text(event)
+                if message_type == "image":
+                    text = "画像メッセージ"
                 status["text"] = text[:80] if text else ""
                 if not text:
                     status["action"] = "ignored_non_text_event"
@@ -169,7 +174,7 @@ def register_webhook_routes(app):
                                 "timestamp": now_jst_iso(),
                                 "line_user_id": user_id,
                                 "patient_name": "",
-                                "display_text": text
+                                "display_text": "画像メッセージを受信しました" if message_type == "image" else text
                             })
                             save_pending_users(pending)
                             status["action"] = "saved_pending_user"
@@ -190,16 +195,25 @@ def register_webhook_routes(app):
 
                 with use_institution(institution_id):
                     status["patient_id"] = patient.get("patient_id", "")
-                    code, label = classify_answer(text)
                     mode = get_system_mode()
-                    append_response(patient, user_id, mode, code, label)
+                    if message_type == "image":
+                        code, label = "PHOTO", "画像を受信しました"
+                        append_response(patient, user_id, mode, code, label, media_id=message_id)
+                    else:
+                        code, label = classify_answer(text)
+                        append_response(patient, user_id, mode, code, label)
                     status["action"] = f"saved_response:{code}"
 
                     if code in get_severe_codes():
                         notify_admin(patient, code, label)
 
                     if reply_token:
-                        ok, result = reply_text(reply_token, patient_auto_reply_text(mode, label))
+                        reply_message = (
+                            "画像を受け付けました。担当者が確認します。"
+                            if message_type == "image"
+                            else patient_auto_reply_text(mode, label)
+                        )
+                        ok, result = reply_text(reply_token, reply_message)
                         status["reply_result"] = f"{ok}: {result}"
                 record_webhook_status(status)
             except Exception as e:

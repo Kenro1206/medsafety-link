@@ -7,16 +7,16 @@ from core.institution_context import get_current_institution
 from core.time_utils import now_jst_iso
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-PATIENTS_RANGE = "patients!A:D"
+PATIENTS_RANGE = "patients!A:F"
 PENDING_RANGE = "pending_users!A:D"
-RESPONSES_RANGE = "responses!A:H"
+RESPONSES_RANGE = "responses!A:I"
 SENT_MESSAGES_RANGE = "sent_messages!A:H"
 SYSTEM_MODE_RANGE = "system_mode!A:A"
 
 REQUIRED_SHEETS = {
-    "patients": [["patient_id", "name", "phone", "line_user_id"]],
+    "patients": [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes"]],
     "pending_users": [["timestamp", "line_user_id", "patient_name", "display_text"]],
-    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled"]],
+    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled", "media_id"]],
     "sent_messages": [["timestamp", "patient_id", "name", "line_user_id", "send_type", "message", "ok", "detail"]],
     "system_mode": [["mode"], ["NORMAL"]],
 }
@@ -225,6 +225,10 @@ def update_sheet(range_name, values):
     )
 
 
+def clear_sheet(range_name):
+    sheets_api_request("POST", f"/values/{quote(range_name, safe='')}:clear", json={})
+
+
 def rows_to_dicts(rows):
     if len(rows) < 2:
         return []
@@ -243,15 +247,20 @@ def load_patients():
 
 
 def save_patients(patients):
-    values = [["patient_id", "name", "phone", "line_user_id"]]
+    old_rows = read_sheet("patients!A:F")
+    values = [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes"]]
     for p in patients:
         values.append([
             p.get("patient_id", ""),
             p.get("name", ""),
             p.get("phone", ""),
-            p.get("line_user_id", "")
+            p.get("line_user_id", ""),
+            p.get("patient_type", ""),
+            p.get("notes", "")
         ])
-    update_sheet("patients!A1:D", values)
+    update_sheet("patients!A1:F", values)
+    if len(old_rows) > len(values):
+        clear_sheet(f"patients!A{len(values) + 1}:F{len(old_rows)}")
 
 
 def load_pending_users():
@@ -259,6 +268,7 @@ def load_pending_users():
 
 
 def save_pending_users(rows):
+    old_rows = read_sheet("pending_users!A:D")
     values = [["timestamp", "line_user_id", "patient_name", "display_text"]]
     for r in rows:
         values.append([
@@ -268,6 +278,8 @@ def save_pending_users(rows):
             r.get("display_text", "")
         ])
     update_sheet("pending_users!A1:D", values)
+    if len(old_rows) > len(values):
+        clear_sheet(f"pending_users!A{len(values) + 1}:D{len(old_rows)}")
 
 
 def load_responses():
@@ -325,8 +337,8 @@ def load_responses():
     return normalized
 
 
-def append_response(patient, user_id, event_type, code, label):
-    update_sheet("responses!A1:H1", REQUIRED_SHEETS["responses"])
+def append_response(patient, user_id, event_type, code, label, media_id=""):
+    update_sheet("responses!A1:I1", REQUIRED_SHEETS["responses"])
     append_sheet(RESPONSES_RANGE, [
         now_jst_iso(),
         patient.get("patient_id", ""),
@@ -335,7 +347,8 @@ def append_response(patient, user_id, event_type, code, label):
         event_type,
         code,
         label,
-        ""
+        "",
+        media_id
     ])
 
 
@@ -379,7 +392,7 @@ def set_latest_response_handled(patient_id, handled):
         return False
 
     headers = rows[0]
-    while len(headers) < 8:
+    while len(headers) < 9:
         headers.append("handled")
     if "handled" not in headers:
         headers.append("handled")
@@ -404,7 +417,7 @@ def set_latest_response_handled(patient_id, handled):
     while len(target) <= handled_index:
         target.append("")
     target[handled_index] = "TRUE" if handled else ""
-    update_sheet(f"responses!A{best_row_index}:H{best_row_index}", [target[:8]])
+    update_sheet(f"responses!A{best_row_index}:I{best_row_index}", [target[:9]])
     return True
 
 
@@ -414,7 +427,7 @@ def set_response_handled(timestamp, patient_id, handled, line_user_id=""):
         return False
 
     headers = rows[0]
-    while len(headers) < 8:
+    while len(headers) < 9:
         headers.append("handled")
     if "handled" not in headers:
         headers.append("handled")
@@ -432,7 +445,7 @@ def set_response_handled(timestamp, patient_id, handled, line_user_id=""):
             while len(row) <= handled_index:
                 row.append("")
             row[handled_index] = "TRUE" if handled else ""
-            update_sheet(f"responses!A{row_index}:H{row_index}", [row[:8]])
+            update_sheet(f"responses!A{row_index}:I{row_index}", [row[:9]])
             return True
 
     return False
@@ -452,12 +465,13 @@ def ensure_spreadsheet_schema():
 
     initialized = []
     for title, values in REQUIRED_SHEETS.items():
-        rows = read_sheet(f"{title}!A1:H2")
+        rows = read_sheet(f"{title}!A1:I2")
         if not rows:
             update_sheet(f"{title}!A1", values)
             initialized.append(title)
-        elif title in ["responses", "sent_messages"] and rows[0] != values[0]:
-            update_sheet(f"{title}!A1:H1", values[:1])
+        elif title in ["patients", "responses", "sent_messages"] and rows[0] != values[0]:
+            end_col = chr(ord("A") + len(values[0]) - 1)
+            update_sheet(f"{title}!A1:{end_col}1", values[:1])
             initialized.append(title)
 
     return initialized

@@ -2,13 +2,13 @@ import copy
 import html
 import os
 import re
-from flask import make_response, request, render_template, redirect, session, jsonify
+from flask import Response, make_response, request, render_template, redirect, session, jsonify
 from core.auth import require_login, require_system_admin
 from core.config_manager import SETTINGS_PATH, get_settings_storage_status, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
 from core.time_utils import format_jst_timestamp
 from core.utils import help_link
-from services.line_service import get_bot_info, push_safety_check, push_text
+from services.line_service import get_bot_info, get_message_content, push_safety_check, push_text
 from services.sheets_service import (
     get_latest_responses,
     get_service_account_email,
@@ -267,6 +267,7 @@ def register_admin_routes(app):
                 "raw_timestamp": raw_timestamp,
                 "code": code or "NO_RESPONSE",
                 "label": response.get("label", "未回答"),
+                "media_id": response.get("media_id", ""),
                 "handled": handled,
                 "row_class": response_row_class(code, handled, severe_codes),
             })
@@ -810,6 +811,8 @@ def register_admin_routes(app):
                 name = request.form.get("name", "").strip()
                 phone = request.form.get("phone", "").strip()
                 line_user_id = request.form.get("line_user_id", "").strip()
+                patient_type = request.form.get("patient_type", "").strip()
+                notes = request.form.get("notes", "").strip()
                 if not patient_id or not name:
                     raise ValueError("患者IDと氏名は必須です。")
                 patients = load_patients()
@@ -817,11 +820,24 @@ def register_admin_routes(app):
                 should_notify_linked = False
                 if existing:
                     old_line_user_id = existing.get("line_user_id", "").strip()
-                    existing.update({"name": name, "phone": phone, "line_user_id": line_user_id})
+                    existing.update({
+                        "name": name,
+                        "phone": phone,
+                        "line_user_id": line_user_id,
+                        "patient_type": patient_type,
+                        "notes": notes,
+                    })
                     should_notify_linked = bool(line_user_id and line_user_id != old_line_user_id)
                     message = "患者情報を更新しました。"
                 else:
-                    existing = {"patient_id": patient_id, "name": name, "phone": phone, "line_user_id": line_user_id}
+                    existing = {
+                        "patient_id": patient_id,
+                        "name": name,
+                        "phone": phone,
+                        "line_user_id": line_user_id,
+                        "patient_type": patient_type,
+                        "notes": notes,
+                    }
                     patients.append(existing)
                     should_notify_linked = bool(line_user_id)
                     message = "患者を登録しました。"
@@ -897,6 +913,7 @@ def register_admin_routes(app):
                 "patient_id": patient.get("patient_id", ""),
                 "name": patient.get("name", ""),
                 "phone": patient.get("phone", ""),
+                "patient_type": patient.get("patient_type", ""),
                 "line_user_id": patient.get("line_user_id", ""),
                 "timestamp": format_jst_timestamp(response.get("timestamp", "未回答")),
                 "answer_code": code or "NO_RESPONSE",
@@ -930,6 +947,17 @@ def register_admin_routes(app):
             default_message=default_message("individual_default"),
             individual_templates=individual_templates(),
         )
+
+    @app.route("/admin/line/content/<message_id>")
+    def line_content(message_id):
+        auth = require_login()
+        if auth:
+            return auth
+
+        ok, content, content_type = get_message_content(message_id)
+        if not ok:
+            return str(content), 502
+        return Response(content, mimetype=content_type)
 
     @app.route("/admin/sent_messages")
     def sent_messages_history():

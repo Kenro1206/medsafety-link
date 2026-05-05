@@ -152,6 +152,27 @@ def reply_text(reply_token, text):
         return False, f"LINE返信例外: {e}"
 
 
+def get_message_content(message_id):
+    token = get_line_token()
+
+    if not token:
+        return False, "LINEチャネルアクセストークンが未設定です。", ""
+
+    if not message_id:
+        return False, "message_idが未設定です。", ""
+
+    url = f"https://api-data.line.me/v2/bot/message/{message_id}/content"
+    headers = {"Authorization": f"Bearer {token}"}
+
+    try:
+        res = requests.get(url, headers=headers, timeout=20)
+        if 200 <= res.status_code < 300:
+            return True, res.content, res.headers.get("Content-Type", "application/octet-stream")
+        return False, f"LINE画像取得失敗: status={res.status_code}, body={res.text}", ""
+    except Exception as e:
+        return False, f"LINE画像取得例外: {e}", ""
+
+
 def test_line_connection():
     token = get_line_token()
 

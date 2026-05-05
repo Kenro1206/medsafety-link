@@ -59,7 +59,12 @@
         <td>{{ r.name }}</td>
         <td>{{ r.phone }}</td>
         <td>{{ r.timestamp }}</td>
-        <td><strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span></td>
+        <td>
+          <strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span>
+          {% if r.media_id %}
+            <br><a href="/admin/line/content/{{ r.media_id }}" target="_blank" rel="noopener">画像を開く</a>
+          {% endif %}
+        </td>
         <td>{% if r.handled %}<span class="success">対応済</span>{% elif r.code == 'NO_RESPONSE' %}<span class="muted">-</span>{% else %}<span class="error">未対応</span>{% endif %}</td>
       </tr>
     {% else %}
@@ -78,7 +83,12 @@
         <td>{{ r.patient_id }}</td>
         <td>{{ r.name }}</td>
         <td>{{ r.event_type }}</td>
-        <td><strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span></td>
+        <td>
+          <strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span>
+          {% if r.media_id %}
+            <br><a href="/admin/line/content/{{ r.media_id }}" target="_blank" rel="noopener">画像を開く</a>
+          {% endif %}
+        </td>
         <td>{% if r.handled %}<span class="success">対応済</span>{% else %}<span class="error">未対応</span>{% endif %}</td>
       </tr>
     {% else %}
