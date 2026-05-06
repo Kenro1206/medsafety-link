@@ -4,7 +4,7 @@ import os
 import re
 from flask import Response, make_response, request, render_template, redirect, session, jsonify
 from core.auth import require_login, require_system_admin
-from core.config_manager import SETTINGS_PATH, get_settings_storage_status, load_settings, save_settings
+from core.config_manager import SETTINGS_PATH, get_message_presets, get_settings_storage_status, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
 from core.time_utils import format_jst_timestamp
 from core.utils import help_link
@@ -331,6 +331,7 @@ def register_admin_routes(app):
             institution=get_current_institution(),
             current_mode=safe_call(get_system_mode, "NORMAL"),
             service_account_email=safe_call(get_service_account_email, ""),
+            message_presets=get_message_presets(),
             message="",
             error_message="",
             help_link=help_link
@@ -533,6 +534,9 @@ def register_admin_routes(app):
             inst["phone"] = request.form.get("hospital_phone", "").strip()
             inst.setdefault("contact", {})["name"] = request.form.get("contact_name", "").strip()
             inst.setdefault("contact", {})["email"] = request.form.get("contact_email", "").strip()
+            message_profile = request.form.get("message_profile", "").strip()
+            if message_profile in get_message_presets():
+                inst["message_profile"] = message_profile
             old_line_token = inst["line"].get("channel_access_token", "").strip()
             new_line_token = request.form.get("line_token", "").strip()
             manual_bot_user_id = request.form.get("line_bot_user_id", "").strip()
@@ -603,6 +607,7 @@ def register_admin_routes(app):
             institution=s.get("institutions", {}).get(get_current_institution_id(), get_current_institution()),
             current_mode=safe_call(get_system_mode, "NORMAL"),
             service_account_email=safe_call(get_service_account_email, ""),
+            message_presets=get_message_presets(),
             message=message,
             error_message=error_message,
             help_link=help_link
@@ -645,6 +650,7 @@ def register_admin_routes(app):
             institution=s.get("institutions", {}).get(institution_id, get_current_institution()),
             current_mode=safe_call(get_system_mode, "NORMAL"),
             service_account_email=safe_call(get_service_account_email, ""),
+            message_presets=get_message_presets(),
             message=message,
             error_message=error_message,
             help_link=help_link

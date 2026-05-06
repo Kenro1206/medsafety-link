@@ -63,6 +63,68 @@ def _default_safety_reply_options():
     ]
 
 
+def get_message_presets():
+    return {
+        "t1dm": {
+            "name": "1型糖尿病",
+            "description": "インスリン、低血糖、連絡希望を重視する運用です。",
+            "messages": {
+                "broadcast_default": "【安否確認】現在の状況を返信してください。\n1. 無事\n2. 体調不良\n3. 薬・インスリンが不足\n4. 低血糖が心配\n5. 至急連絡希望",
+                "remind_default": "【再送】安否確認への回答がまだ確認できていません。現在の状況を返信してください。",
+                "individual_default": "状況を確認しました。インスリン、血糖値、補食などで困っていることがあればお知らせください。",
+                "individual_templates": [
+                    "状況を確認しました。インスリン、血糖値、補食などで困っていることがあればお知らせください。",
+                    "低血糖症状がある場合は、可能であれば血糖測定と補食を行い、改善しない場合は電話でご連絡ください。",
+                    "緊急性が高い場合は、LINEではなく当院へお電話のうえ、救急外来受診をご検討ください。",
+                ],
+            },
+            "safety_reply_options": _default_safety_reply_options(),
+        },
+        "dialysis": {
+            "name": "透析患者",
+            "description": "透析可否、体調不良、シャントや水分・薬剤不足を重視する運用です。",
+            "messages": {
+                "broadcast_default": "【透析安否確認】現在の状況を返信してください。\n1. 無事\n2. 体調不良\n3. 透析に行けない可能性あり\n4. シャント・出血などが心配\n5. 至急連絡希望",
+                "remind_default": "【再送】透析安否確認への回答がまだ確認できていません。現在の状況を返信してください。",
+                "individual_default": "状況を確認しました。透析予定、体調、シャントの状態などで困っていることがあればお知らせください。",
+                "individual_templates": [
+                    "状況を確認しました。透析予定、体調、シャントの状態などで困っていることがあればお知らせください。",
+                    "透析に来院できない可能性がある場合は、現在地と連絡可能な電話番号をお知らせください。",
+                    "息苦しさ、胸痛、強い出血など緊急性が高い症状がある場合は、LINEではなく電話・救急外来をご検討ください。",
+                ],
+            },
+            "safety_reply_options": [
+                {"label": "無事", "text": "1", "code": "SAFE"},
+                {"label": "体調不良", "text": "2", "code": "SICK"},
+                {"label": "透析困難", "text": "3", "code": "DIALYSIS_DIFFICULT"},
+                {"label": "シャント心配", "text": "4", "code": "SHUNT_CONCERN"},
+                {"label": "至急連絡希望", "text": "5", "code": "CALL"},
+            ],
+        },
+        "foot_care": {
+            "name": "足病変",
+            "description": "足の写真、感染徴候、受診相談を重視する運用です。",
+            "messages": {
+                "broadcast_default": "【足の状態確認】現在の状況を返信してください。写真も送信できます。\n1. 変化なし\n2. 痛み・赤みあり\n3. 傷・浸出液あり\n4. 発熱・悪化が心配\n5. 至急連絡希望",
+                "remind_default": "【再送】足の状態確認への回答がまだ確認できていません。現在の状況を返信してください。必要に応じて写真も送信できます。",
+                "individual_default": "足の状態を確認しました。可能であれば写真を追加で送信し、痛み・赤み・発熱の有無もお知らせください。",
+                "individual_templates": [
+                    "足の状態を確認しました。可能であれば写真を追加で送信し、痛み・赤み・発熱の有無もお知らせください。",
+                    "傷が悪化している、赤みが広がる、発熱がある場合は、早めの受診をご検討ください。",
+                    "緊急性が高い場合は、LINEではなく当院へお電話のうえ、救急外来受診をご検討ください。",
+                ],
+            },
+            "safety_reply_options": [
+                {"label": "変化なし", "text": "1", "code": "SAFE"},
+                {"label": "痛み・赤み", "text": "2", "code": "FOOT_PAIN_REDNESS"},
+                {"label": "傷・浸出液", "text": "3", "code": "FOOT_WOUND_DRAINAGE"},
+                {"label": "発熱・悪化", "text": "4", "code": "FOOT_WORSE"},
+                {"label": "至急連絡希望", "text": "5", "code": "CALL"},
+            ],
+        },
+    }
+
+
 def _default_institution():
     return {
         "name": "未設定",
@@ -77,6 +139,7 @@ def _default_institution():
             "drive_folder_id": ""
         },
         "admins": {"line_user_ids": []},
+        "message_profile": "t1dm",
         "messages": _default_messages(),
         "safety_reply_options": _default_safety_reply_options()
     }

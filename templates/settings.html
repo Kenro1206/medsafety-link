@@ -122,6 +122,22 @@
     <div class="section-title">メッセージ設定</div>
 
     <div class="form-row">
+      <label>メッセージ設定パターン</label><br>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select name="message_profile" id="message-profile-select" style="max-width:320px;">
+          {% for key, preset in message_presets.items() %}
+            <option value="{{ key }}" {% if institution.message_profile == key %}selected{% endif %}>{{ preset.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" id="apply-message-profile">このパターンを反映</button>
+      </div>
+      <div class="muted" id="message-profile-description" style="margin-top:6px;">
+        1型糖尿病、透析患者、足病変など、運用に合わせた標準文面と回答ボタンを呼び出せます。
+        反映後も各文面は自由に編集できます。
+      </div>
+    </div>
+
+    <div class="form-row">
       <label>一斉送信の標準メッセージ</label><br>
       <textarea name="broadcast_default" style="height:120px;">{{ institution.messages.broadcast_default }}</textarea>
       <div class="muted">
@@ -172,6 +188,55 @@
     </div>
 
     <div class="section-title">Google設定</div>
+
+    <script>
+    (function() {
+      const presets = {{ message_presets|tojson }};
+      const select = document.getElementById("message-profile-select");
+      const button = document.getElementById("apply-message-profile");
+      const description = document.getElementById("message-profile-description");
+
+      function setValue(name, value) {
+        const field = document.querySelector(`[name="${name}"]`);
+        if (field) field.value = value || "";
+      }
+
+      function updateDescription() {
+        const preset = presets[select.value];
+        if (preset && description) {
+          description.textContent = preset.description + " 反映後も各文面は自由に編集できます。";
+        }
+      }
+
+      function applyPreset() {
+        const preset = presets[select.value];
+        if (!preset) return;
+        const messages = preset.messages || {};
+        setValue("broadcast_default", messages.broadcast_default);
+        setValue("remind_default", messages.remind_default);
+        setValue("individual_default", messages.individual_default);
+
+        const templates = messages.individual_templates || [];
+        for (let i = 1; i <= 3; i += 1) {
+          setValue(`individual_template_${i}`, templates[i - 1] || "");
+        }
+
+        const options = preset.safety_reply_options || [];
+        for (let i = 1; i <= 5; i += 1) {
+          const option = options[i - 1] || {};
+          setValue(`safety_label_${i}`, option.label);
+          setValue(`safety_code_${i}`, option.code);
+        }
+        updateDescription();
+      }
+
+      if (select) {
+        select.addEventListener("change", updateDescription);
+        updateDescription();
+      }
+      if (button) button.addEventListener("click", applyPreset);
+    })();
+    </script>
 
     <div style="padding:12px;border:1px solid #d9e7ff;background:#f8fbff;border-radius:8px;margin-bottom:16px;">
       <strong>Google Sheets連携の手順</strong>
