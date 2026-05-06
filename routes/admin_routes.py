@@ -13,6 +13,8 @@ from services.sheets_service import (
     get_latest_responses,
     get_service_account_email,
     get_service_account_summary,
+    get_drive_folder_id,
+    get_drive_folder_metadata,
     get_spreadsheet_id,
     get_spreadsheet_titles,
     get_system_mode,
@@ -461,6 +463,56 @@ def register_admin_routes(app):
                 title="Googleシート初期化",
                 success=False,
                 result_text=f"Googleシート初期化中にエラーが発生しました: {e}",
+                back_url="/admin/settings",
+                settings=load_settings(),
+            )
+
+    @app.route("/admin/google/drive/status")
+    def google_drive_status():
+        auth = require_login()
+        if auth:
+            return auth
+
+        summary = safe_call(get_service_account_summary, {})
+        folder_id = safe_call(get_drive_folder_id, "")
+        try:
+            metadata = get_drive_folder_metadata()
+            is_folder = metadata.get("mimeType") == "application/vnd.google-apps.folder"
+            can_add = metadata.get("capabilities", {}).get("canAddChildren")
+            lines = [
+                "Google Drive画像保存診断",
+                f"画像保存先フォルダID: {folder_id or '未設定'}",
+                f"サービスアカウント: {summary.get('client_email', '未取得') or '未取得'}",
+                f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
+                f"フォルダ名: {metadata.get('name', '未取得')}",
+                f"フォルダとして認識: {'はい' if is_folder else 'いいえ'}",
+                f"画像追加権限: {'あり' if can_add else 'なし'}",
+            ]
+            success = bool(is_folder and can_add)
+            if not success:
+                lines.append("Driveフォルダをサービスアカウントに編集者として共有してください。")
+            return render_template(
+                "setup_result.html",
+                title="Google Drive画像保存診断",
+                success=success,
+                result_text="\n".join(lines),
+                back_url="/admin/settings",
+                settings=load_settings(),
+            )
+        except Exception as e:
+            lines = [
+                "Google Drive画像保存診断",
+                f"画像保存先フォルダID: {folder_id or '未設定'}",
+                f"サービスアカウント: {summary.get('client_email', '未取得') or '未取得'}",
+                f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
+                f"Google Driveへ接続できませんでした: {e}",
+                "Google Drive APIが有効か、DriveフォルダIDが正しいか、フォルダをサービスアカウントへ編集者共有しているか確認してください。",
+            ]
+            return render_template(
+                "setup_result.html",
+                title="Google Drive画像保存診断",
+                success=False,
+                result_text="\n".join(lines),
                 back_url="/admin/settings",
                 settings=load_settings(),
             )

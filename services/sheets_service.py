@@ -9,7 +9,7 @@ from core.time_utils import now_jst_iso
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/drive",
 ]
 PATIENTS_RANGE = "patients!A:F"
 PENDING_RANGE = "pending_users!A:D"
@@ -223,6 +223,16 @@ def get_drive_folder_id():
     if not institution:
         return ""
     return institution.get("google", {}).get("drive_folder_id", "").strip()
+
+
+def get_drive_folder_metadata():
+    folder_id = get_drive_folder_id()
+    if not folder_id:
+        raise ValueError("画像保存先Google DriveフォルダIDが未設定です。")
+    return drive_api_request(
+        "GET",
+        f"https://www.googleapis.com/drive/v3/files/{folder_id}?fields=id,name,mimeType,capabilities(canAddChildren)",
+    )
 
 
 def get_spreadsheet_titles():

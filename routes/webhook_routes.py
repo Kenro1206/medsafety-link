@@ -203,7 +203,12 @@ def register_webhook_routes(app):
                         if ok_content:
                             extension = "jpg" if "jpeg" in mime_type else "png" if "png" in mime_type else "bin"
                             filename = f"{patient.get('patient_id', 'patient')}_{now_jst_iso().replace(':', '').replace('+', '_')}.{extension}"
-                            media_url = upload_drive_file(content, filename, mime_type)
+                            try:
+                                media_url = upload_drive_file(content, filename, mime_type)
+                                if not media_url:
+                                    status["error"] = "画像保存先Google DriveフォルダIDが未設定のため、Drive保存は行いませんでした。"
+                            except Exception as upload_error:
+                                status["error"] = f"Google Drive画像保存失敗: {upload_error}"
                         else:
                             status["error"] = str(content)
                         append_response(patient, user_id, mode, code, label, media_id=message_id, media_url=media_url)
