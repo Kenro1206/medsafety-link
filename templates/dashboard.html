@@ -62,7 +62,7 @@
         <td>
           <strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span>
           {% if r.media_url %}
-            <br><a href="{{ r.media_url }}" target="_blank" rel="noopener">画像を開く</a>
+            <br><a href="{{ r.media_url }}" target="_blank" rel="noopener">{% if r.code == 'LOCATION' %}地図を開く{% else %}画像を開く{% endif %}</a>
           {% elif r.media_id %}
             <br><a href="/admin/line/content/{{ r.media_id }}" target="_blank" rel="noopener">画像を開く</a>
           {% endif %}
@@ -88,7 +88,7 @@
         <td>
           <strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span>
           {% if r.media_url %}
-            <br><a href="{{ r.media_url }}" target="_blank" rel="noopener">画像を開く</a>
+            <br><a href="{{ r.media_url }}" target="_blank" rel="noopener">{% if r.code == 'LOCATION' %}地図を開く{% else %}画像を開く{% endif %}</a>
           {% elif r.media_id %}
             <br><a href="/admin/line/content/{{ r.media_id }}" target="_blank" rel="noopener">画像を開く</a>
           {% endif %}

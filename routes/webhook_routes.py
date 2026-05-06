@@ -67,8 +67,14 @@ def classify_answer(text):
 
 def get_event_text(event):
     event_type = event.get("type")
-    if event_type == "message" and event.get("message", {}).get("type") == "text":
-        return event.get("message", {}).get("text", "")
+    if event_type == "message":
+        message = event.get("message", {})
+        message_type = message.get("type")
+        if message_type == "text":
+            return message.get("text", "")
+        if message_type == "location":
+            address = message.get("address") or message.get("title") or ""
+            return f"位置情報: {address}".strip()
 
     if event_type == "postback":
         data = event.get("postback", {}).get("data", "")
@@ -124,6 +130,21 @@ def record_webhook_status(status):
     save_settings(settings)
 
 
+def get_location_detail(event):
+    message = event.get("message", {})
+    latitude = message.get("latitude")
+    longitude = message.get("longitude")
+    title = message.get("title", "")
+    address = message.get("address", "")
+    label_parts = [part for part in [title, address] if part]
+    label = " / ".join(label_parts) if label_parts else "位置情報を受信しました"
+    map_url = ""
+    if latitude is not None and longitude is not None:
+        map_url = f"https://www.google.com/maps?q={latitude},{longitude}"
+        label = f"{label} ({latitude}, {longitude})"
+    return label, map_url
+
+
 def register_webhook_routes(app):
     @app.route("/callback", methods=["POST"])
     def callback():
@@ -151,6 +172,8 @@ def register_webhook_routes(app):
                 text = get_event_text(event)
                 if message_type == "image":
                     text = "画像メッセージ"
+                elif message_type == "location":
+                    text = get_location_detail(event)[0]
                 status["text"] = text[:80] if text else ""
                 if not text:
                     status["action"] = "ignored_non_text_event"
@@ -174,7 +197,11 @@ def register_webhook_routes(app):
                                 "timestamp": now_jst_iso(),
                                 "line_user_id": user_id,
                                 "patient_name": "",
-                                "display_text": "画像メッセージを受信しました" if message_type == "image" else text
+                                "display_text": (
+                                    "画像メッセージを受信しました" if message_type == "image"
+                                    else "位置情報を受信しました" if message_type == "location"
+                                    else text
+                                )
                             })
                             save_pending_users(pending)
                             status["action"] = "saved_pending_user"
@@ -212,6 +239,10 @@ def register_webhook_routes(app):
                         else:
                             status["error"] = str(content)
                         append_response(patient, user_id, mode, code, label, media_id=message_id, media_url=media_url)
+                    elif message_type == "location":
+                        code = "LOCATION"
+                        label, map_url = get_location_detail(event)
+                        append_response(patient, user_id, mode, code, label, media_url=map_url)
                     else:
                         code, label = classify_answer(text)
                         append_response(patient, user_id, mode, code, label)
@@ -224,6 +255,8 @@ def register_webhook_routes(app):
                         reply_message = (
                             "画像を受け付けました。担当者が確認します。"
                             if message_type == "image"
+                            else "位置情報を受け付けました。担当者が確認します。"
+                            if message_type == "location"
                             else patient_auto_reply_text(mode, label)
                         )
                         ok, result = reply_text(reply_token, reply_message)
