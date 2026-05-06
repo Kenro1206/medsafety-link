@@ -13,17 +13,25 @@ SCOPES = [
 ]
 PATIENTS_RANGE = "patients!A:F"
 PENDING_RANGE = "pending_users!A:D"
-RESPONSES_RANGE = "responses!A:J"
+RESPONSES_RANGE = "responses!A:N"
 SENT_MESSAGES_RANGE = "sent_messages!A:H"
 SYSTEM_MODE_RANGE = "system_mode!A:A"
 
 REQUIRED_SHEETS = {
     "patients": [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes"]],
     "pending_users": [["timestamp", "line_user_id", "patient_name", "display_text"]],
-    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled", "media_id", "media_url"]],
+    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled", "media_id", "media_url", "severity", "severity_score", "latitude", "longitude"]],
     "sent_messages": [["timestamp", "patient_id", "name", "line_user_id", "send_type", "message", "ok", "detail"]],
     "system_mode": [["mode"], ["NORMAL"]],
 }
+
+
+def _column_letter(index):
+    letters = ""
+    while index:
+        index, remainder = divmod(index - 1, 26)
+        letters = chr(65 + remainder) + letters
+    return letters
 
 
 def _looks_like_default_service_account_path(path):
@@ -402,8 +410,18 @@ def load_responses():
     return normalized
 
 
-def append_response(patient, user_id, event_type, code, label, media_id="", media_url=""):
-    update_sheet("responses!A1:J1", REQUIRED_SHEETS["responses"])
+def get_response_severity(code):
+    severe_codes = set(load_settings().get("alerts", {}).get("severe_codes", []))
+    if code in severe_codes:
+        return "高", 3
+    if code == "SAFE":
+        return "低", 1
+    return "中", 2
+
+
+def append_response(patient, user_id, event_type, code, label, media_id="", media_url="", latitude="", longitude=""):
+    severity, severity_score = get_response_severity(code)
+    update_sheet("responses!A1:N1", REQUIRED_SHEETS["responses"])
     append_sheet(RESPONSES_RANGE, [
         now_jst_iso(),
         patient.get("patient_id", ""),
@@ -414,7 +432,11 @@ def append_response(patient, user_id, event_type, code, label, media_id="", medi
         label,
         "",
         media_id,
-        media_url
+        media_url,
+        severity,
+        severity_score,
+        latitude,
+        longitude,
     ])
 
 
@@ -457,8 +479,9 @@ def set_latest_response_handled(patient_id, handled):
     if len(rows) < 2:
         return False
 
+    response_col_count = len(REQUIRED_SHEETS["responses"][0])
     headers = rows[0]
-    while len(headers) < 10:
+    while len(headers) < response_col_count:
         headers.append("handled")
     if "handled" not in headers:
         headers.append("handled")
@@ -483,7 +506,9 @@ def set_latest_response_handled(patient_id, handled):
     while len(target) <= handled_index:
         target.append("")
     target[handled_index] = "TRUE" if handled else ""
-    update_sheet(f"responses!A{best_row_index}:J{best_row_index}", [target[:10]])
+    while len(target) < response_col_count:
+        target.append("")
+    update_sheet(f"responses!A{best_row_index}:N{best_row_index}", [target[:response_col_count]])
     return True
 
 
@@ -492,8 +517,9 @@ def set_response_handled(timestamp, patient_id, handled, line_user_id=""):
     if len(rows) < 2:
         return False
 
+    response_col_count = len(REQUIRED_SHEETS["responses"][0])
     headers = rows[0]
-    while len(headers) < 10:
+    while len(headers) < response_col_count:
         headers.append("handled")
     if "handled" not in headers:
         headers.append("handled")
@@ -511,7 +537,9 @@ def set_response_handled(timestamp, patient_id, handled, line_user_id=""):
             while len(row) <= handled_index:
                 row.append("")
             row[handled_index] = "TRUE" if handled else ""
-            update_sheet(f"responses!A{row_index}:J{row_index}", [row[:10]])
+            while len(row) < response_col_count:
+                row.append("")
+            update_sheet(f"responses!A{row_index}:N{row_index}", [row[:response_col_count]])
             return True
 
     return False
@@ -531,12 +559,12 @@ def ensure_spreadsheet_schema():
 
     initialized = []
     for title, values in REQUIRED_SHEETS.items():
-        rows = read_sheet(f"{title}!A1:J2")
+        end_col = _column_letter(len(values[0]))
+        rows = read_sheet(f"{title}!A1:{end_col}2")
         if not rows:
             update_sheet(f"{title}!A1", values)
             initialized.append(title)
         elif title in ["patients", "responses", "sent_messages"] and rows[0] != values[0]:
-            end_col = chr(ord("A") + len(values[0]) - 1)
             update_sheet(f"{title}!A1:{end_col}1", values[:1])
             initialized.append(title)
 

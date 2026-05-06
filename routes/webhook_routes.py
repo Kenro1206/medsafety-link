@@ -132,17 +132,17 @@ def record_webhook_status(status):
 
 def get_location_detail(event):
     message = event.get("message", {})
-    latitude = message.get("latitude")
-    longitude = message.get("longitude")
+    latitude = message.get("latitude", "")
+    longitude = message.get("longitude", "")
     title = message.get("title", "")
     address = message.get("address", "")
     label_parts = [part for part in [title, address] if part]
     label = " / ".join(label_parts) if label_parts else "位置情報を受信しました"
     map_url = ""
-    if latitude is not None and longitude is not None:
+    if latitude != "" and longitude != "":
         map_url = f"https://www.google.com/maps?q={latitude},{longitude}"
         label = f"{label} ({latitude}, {longitude})"
-    return label, map_url
+    return label, map_url, latitude, longitude
 
 
 def register_webhook_routes(app):
@@ -241,8 +241,17 @@ def register_webhook_routes(app):
                         append_response(patient, user_id, mode, code, label, media_id=message_id, media_url=media_url)
                     elif message_type == "location":
                         code = "LOCATION"
-                        label, map_url = get_location_detail(event)
-                        append_response(patient, user_id, mode, code, label, media_url=map_url)
+                        label, map_url, latitude, longitude = get_location_detail(event)
+                        append_response(
+                            patient,
+                            user_id,
+                            mode,
+                            code,
+                            label,
+                            media_url=map_url,
+                            latitude=latitude,
+                            longitude=longitude,
+                        )
                     else:
                         code, label = classify_answer(text)
                         append_response(patient, user_id, mode, code, label)
