@@ -5,12 +5,14 @@
     <strong>表示フィルター:</strong>
     <button type="button" onclick="showAll()">全件表示</button>
     <button type="button" onclick="showUnHandled()">未対応のみ</button>
+    <label for="responderSearch"><strong>検索:</strong></label>
+    <input id="responderSearch" type="search" placeholder="患者IDまたは氏名" style="max-width:280px;">
     <span id="filterStatus" class="muted">（全件表示）</span>
   </div>
   <table id="responderTable">
     <tr><th>患者ID</th><th>氏名</th><th>区分</th><th>都道府県</th><th>電話</th><th>時刻</th><th>回答</th><th>対応</th><th>操作</th><th>個別送信</th></tr>
     {% for r in responders %}
-    <tr class="{{ r.row_class }} responder-row" data-handled="{{ 'true' if r.is_handled else 'false' }}">
+    <tr class="{{ r.row_class }} responder-row" data-handled="{{ 'true' if r.is_handled else 'false' }}" data-search="{{ r.patient_id }} {{ r.name }}">
       <td>{{ r.patient_id }}</td><td>{{ r.name }}</td><td>{{ r.patient_type }}</td><td>{{ r.prefecture }}</td><td>{{ r.phone }}</td><td>{{ r.timestamp }}</td>
       <td><strong>{{ r.answer_label }}</strong><br><span class="muted">{{ r.answer_code }}</span></td>
       <td>{% if r.is_handled %}<span class="success">対応済</span>{% else %}<span class="error">未対応</span>{% endif %}</td>
@@ -48,8 +50,25 @@
   </table>
 </div>
 <script>
-function showUnHandled(){document.querySelectorAll('.responder-row').forEach(r=>{r.style.display=r.dataset.handled==='true'?'none':''});document.getElementById('filterStatus').innerText='（未対応のみ表示中）'}
-function showAll(){document.querySelectorAll('.responder-row').forEach(r=>r.style.display='');document.getElementById('filterStatus').innerText='（全件表示）'}
+let unhandledOnly = false;
+function applyResponderFilters(){
+  const query = (document.getElementById('responderSearch')?.value || '').trim().toLowerCase();
+  let visibleCount = 0;
+  let totalCount = 0;
+  document.querySelectorAll('.responder-row').forEach(r=>{
+    totalCount += 1;
+    const matchesStatus = !unhandledOnly || r.dataset.handled !== 'true';
+    const matchesSearch = !query || (r.dataset.search || '').toLowerCase().includes(query);
+    const visible = matchesStatus && matchesSearch;
+    r.style.display = visible ? '' : 'none';
+    if (visible) visibleCount += 1;
+  });
+  const mode = unhandledOnly ? '未対応のみ' : '全件';
+  document.getElementById('filterStatus').innerText = query ? `（${mode} / ${visibleCount} / ${totalCount} 件表示）` : `（${mode}表示）`;
+}
+function showUnHandled(){unhandledOnly=true;applyResponderFilters()}
+function showAll(){unhandledOnly=false;applyResponderFilters()}
+document.getElementById('responderSearch')?.addEventListener('input', applyResponderFilters);
 document.querySelectorAll('.template-select').forEach(select=>{select.addEventListener('change',()=>{const textarea=select.closest('form').querySelector('textarea[name="message"]');if(textarea) textarea.value=select.value;});});
 </script>
 {% endblock %}

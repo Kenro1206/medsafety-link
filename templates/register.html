@@ -56,10 +56,15 @@
     一覧上で電話番号、都道府県、LINE user_id、患者区分、メモを編集できます。
     削除すると患者一覧から外れます。回答履歴・送信履歴は記録として残ります。
   </div>
+  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <label for="patientSearch"><strong>検索:</strong></label>
+    <input id="patientSearch" type="search" placeholder="患者IDまたは氏名" style="max-width:280px;">
+    <span id="patientSearchStatus" class="muted">全件表示</span>
+  </div>
   <table>
     <tr><th>患者ID</th><th>氏名</th><th>電話番号</th><th>都道府県</th><th>LINE user_id</th><th>患者区分</th><th>メモ</th><th>状態</th><th>操作</th></tr>
     {% for p in patients %}
-      <tr>
+      <tr class="patient-row" data-search="{{ p.patient_id }} {{ p.name }}">
         <td>{{ p.patient_id }}</td>
         <td>{{ p.name }}</td>
         <td>
@@ -111,5 +116,24 @@ document.querySelectorAll(".delete-patient-form").forEach(form => {
     }
   });
 });
+
+const patientSearch = document.getElementById("patientSearch");
+const patientSearchStatus = document.getElementById("patientSearchStatus");
+function filterPatientRows() {
+  const query = (patientSearch?.value || "").trim().toLowerCase();
+  let visibleCount = 0;
+  let totalCount = 0;
+  document.querySelectorAll(".patient-row").forEach(row => {
+    totalCount += 1;
+    const haystack = (row.dataset.search || "").toLowerCase();
+    const visible = !query || haystack.includes(query);
+    row.style.display = visible ? "" : "none";
+    if (visible) visibleCount += 1;
+  });
+  if (patientSearchStatus) {
+    patientSearchStatus.textContent = query ? `${visibleCount} / ${totalCount} 件表示` : "全件表示";
+  }
+}
+if (patientSearch) patientSearch.addEventListener("input", filterPatientRows);
 </script>
 {% endblock %}
