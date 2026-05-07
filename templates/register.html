@@ -15,7 +15,9 @@
       <label>患者区分</label><br>
       <select name="patient_type">
         <option value="">未設定</option>
+        <option value="1型糖尿病">1型糖尿病</option>
         <option value="糖尿病">糖尿病</option>
+        <option value="透析患者">透析患者</option>
         <option value="足病変">足病変</option>
         <option value="その他">その他</option>
       </select>
@@ -51,6 +53,7 @@
 <div class="card">
   <div class="section-title">患者一覧</div>
   <div class="muted" style="margin-bottom:10px;">
+    一覧上で電話番号、都道府県、LINE user_id、患者区分、メモを編集できます。
     削除すると患者一覧から外れます。回答履歴・送信履歴は記録として残ります。
   </div>
   <table>
@@ -59,13 +62,32 @@
       <tr>
         <td>{{ p.patient_id }}</td>
         <td>{{ p.name }}</td>
-        <td>{{ p.phone }}</td>
-        <td>{{ p.prefecture }}</td>
-        <td style="word-break:break-all;">{{ p.line_user_id }}</td>
-        <td>{{ p.patient_type }}</td>
-        <td>{{ p.notes }}</td>
+        <td>
+          <input form="patient-update-{{ loop.index }}" name="phone" value="{{ p.phone }}" style="min-width:120px;">
+        </td>
+        <td>
+          <input form="patient-update-{{ loop.index }}" name="prefecture" value="{{ p.prefecture }}" placeholder="例: 熊本県" style="min-width:100px;">
+        </td>
+        <td>
+          <input form="patient-update-{{ loop.index }}" name="line_user_id" value="{{ p.line_user_id }}" style="min-width:190px;font-size:12px;">
+        </td>
+        <td>
+          <select form="patient-update-{{ loop.index }}" name="patient_type" style="min-width:110px;">
+            {% for option in ["", "1型糖尿病", "糖尿病", "透析患者", "足病変", "その他"] %}
+              <option value="{{ option }}" {% if p.patient_type == option %}selected{% endif %}>{{ option if option else "未設定" }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          <input form="patient-update-{{ loop.index }}" name="notes" value="{{ p.notes }}" style="min-width:180px;">
+        </td>
         <td>{% if p.line_user_id %}<span class="success">登録済み</span>{% else %}<span class="error">未紐付け</span>{% endif %}</td>
         <td>
+          <form id="patient-update-{{ loop.index }}" method="POST" action="/admin/register" style="display:inline;">
+            <input type="hidden" name="patient_id" value="{{ p.patient_id }}">
+            <input type="hidden" name="name" value="{{ p.name }}">
+            <button type="submit">更新</button>
+          </form>
           <form method="POST" action="/admin/register/delete" class="delete-patient-form">
             <input type="hidden" name="patient_id" value="{{ p.patient_id }}">
             <input type="hidden" name="patient_name" value="{{ p.name }}">
