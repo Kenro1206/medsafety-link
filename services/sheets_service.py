@@ -11,14 +11,14 @@ SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
 ]
-PATIENTS_RANGE = "patients!A:F"
+PATIENTS_RANGE = "patients!A:G"
 PENDING_RANGE = "pending_users!A:D"
 RESPONSES_RANGE = "responses!A:N"
 SENT_MESSAGES_RANGE = "sent_messages!A:H"
 SYSTEM_MODE_RANGE = "system_mode!A:A"
 
 REQUIRED_SHEETS = {
-    "patients": [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes"]],
+    "patients": [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes", "prefecture"]],
     "pending_users": [["timestamp", "line_user_id", "patient_name", "display_text"]],
     "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled", "media_id", "media_url", "severity", "severity_score", "latitude", "longitude"]],
     "sent_messages": [["timestamp", "patient_id", "name", "line_user_id", "send_type", "message", "ok", "detail"]],
@@ -320,8 +320,8 @@ def load_patients():
 
 
 def save_patients(patients):
-    old_rows = read_sheet("patients!A:F")
-    values = [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes"]]
+    old_rows = read_sheet("patients!A:G")
+    values = [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes", "prefecture"]]
     for p in patients:
         values.append([
             p.get("patient_id", ""),
@@ -329,11 +329,12 @@ def save_patients(patients):
             p.get("phone", ""),
             p.get("line_user_id", ""),
             p.get("patient_type", ""),
-            p.get("notes", "")
+            p.get("notes", ""),
+            p.get("prefecture", "")
         ])
-    update_sheet("patients!A1:F", values)
+    update_sheet("patients!A1:G", values)
     if len(old_rows) > len(values):
-        clear_sheet(f"patients!A{len(values) + 1}:F{len(old_rows)}")
+        clear_sheet(f"patients!A{len(values) + 1}:G{len(old_rows)}")
 
 
 def load_pending_users():

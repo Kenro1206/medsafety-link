@@ -213,6 +213,7 @@ def notify_admin(patient, code, label):
     msg = f"""【新着回答】
 患者ID: {patient.get('patient_id', '')}
 氏名: {patient.get('name', '')}
+都道府県: {patient.get('prefecture', '')}
 電話番号: {patient.get('phone', '')}
 回答: {label}
 コード: {code}"""

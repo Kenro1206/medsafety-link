@@ -265,6 +265,7 @@ def register_admin_routes(app):
                 "patient_id": patient.get("patient_id", ""),
                 "name": patient.get("name", ""),
                 "phone": patient.get("phone", ""),
+                "prefecture": patient.get("prefecture", ""),
                 "timestamp": format_jst_timestamp(raw_timestamp or "未回答"),
                 "raw_timestamp": raw_timestamp,
                 "code": code or "NO_RESPONSE",
@@ -870,6 +871,7 @@ def register_admin_routes(app):
                 patient_id = request.form.get("patient_id", "").strip()
                 name = request.form.get("name", "").strip()
                 phone = request.form.get("phone", "").strip()
+                prefecture = request.form.get("prefecture", "").strip()
                 line_user_id = request.form.get("line_user_id", "").strip()
                 patient_type = request.form.get("patient_type", "").strip()
                 notes = request.form.get("notes", "").strip()
@@ -886,6 +888,7 @@ def register_admin_routes(app):
                         "line_user_id": line_user_id,
                         "patient_type": patient_type,
                         "notes": notes,
+                        "prefecture": prefecture,
                     })
                     should_notify_linked = bool(line_user_id and line_user_id != old_line_user_id)
                     message = "患者情報を更新しました。"
@@ -897,6 +900,7 @@ def register_admin_routes(app):
                         "line_user_id": line_user_id,
                         "patient_type": patient_type,
                         "notes": notes,
+                        "prefecture": prefecture,
                     }
                     patients.append(existing)
                     should_notify_linked = bool(line_user_id)
@@ -973,6 +977,7 @@ def register_admin_routes(app):
                 "patient_id": patient.get("patient_id", ""),
                 "name": patient.get("name", ""),
                 "phone": patient.get("phone", ""),
+                "prefecture": patient.get("prefecture", ""),
                 "patient_type": patient.get("patient_type", ""),
                 "line_user_id": patient.get("line_user_id", ""),
                 "timestamp": format_jst_timestamp(response.get("timestamp", "未回答")),
