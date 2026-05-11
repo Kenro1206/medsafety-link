@@ -78,12 +78,21 @@
   <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <label for="patientSearch"><strong>検索:</strong></label>
     <input id="patientSearch" type="search" placeholder="患者IDまたは氏名" style="max-width:280px;">
+    <label for="patientSort"><strong>並び替え:</strong></label>
+    <select id="patientSort" style="max-width:180px;">
+      <option value="">登録順</option>
+      <option value="patient-id">患者ID</option>
+      <option value="name">氏名</option>
+      <option value="prefecture">都道府県</option>
+      <option value="patient-type">患者区分</option>
+    </select>
+    <button type="button" id="patientSortDirection" data-direction="asc">昇順</button>
     <span id="patientSearchStatus" class="muted">全件表示</span>
   </div>
-  <table>
+  <table id="patientTable">
     <tr><th>患者ID</th><th>氏名</th><th>電話番号</th><th>都道府県</th><th>LINE user_id</th><th>患者区分</th><th>メモ</th><th>状態</th><th>操作</th></tr>
     {% for p in patients %}
-      <tr class="patient-row" data-search="{{ p.patient_id }} {{ p.name }}">
+      <tr class="patient-row" data-search="{{ p.patient_id }} {{ p.name }}" data-patient-id="{{ p.patient_id }}" data-name="{{ p.name }}" data-prefecture="{{ p.prefecture }}" data-patient-type="{{ p.patient_type }}">
         <td>{{ p.patient_id }}</td>
         <td>{{ p.name }}</td>
         <td>
@@ -138,7 +147,29 @@ document.querySelectorAll(".delete-patient-form").forEach(form => {
 
 const patientSearch = document.getElementById("patientSearch");
 const patientSearchStatus = document.getElementById("patientSearchStatus");
+const patientSort = document.getElementById("patientSort");
+const patientSortDirection = document.getElementById("patientSortDirection");
+
+function normalizeSortValue(value) {
+  return (value || "").toString().toLowerCase();
+}
+
+function sortPatientRows() {
+  const key = patientSort?.value || "";
+  const tableBody = document.querySelector("#patientTable tbody");
+  if (!key || !tableBody) return;
+  const direction = patientSortDirection?.dataset.direction || "asc";
+  const rows = Array.from(document.querySelectorAll(".patient-row"));
+  rows.sort((a, b) => {
+    const av = normalizeSortValue(a.getAttribute(`data-${key}`) || "");
+    const bv = normalizeSortValue(b.getAttribute(`data-${key}`) || "");
+    return direction === "asc" ? av.localeCompare(bv, "ja") : bv.localeCompare(av, "ja");
+  });
+  rows.forEach(row => tableBody.appendChild(row));
+}
+
 function filterPatientRows() {
+  sortPatientRows();
   const query = (patientSearch?.value || "").trim().toLowerCase();
   let visibleCount = 0;
   let totalCount = 0;
@@ -154,5 +185,14 @@ function filterPatientRows() {
   }
 }
 if (patientSearch) patientSearch.addEventListener("input", filterPatientRows);
+if (patientSort) patientSort.addEventListener("change", filterPatientRows);
+if (patientSortDirection) {
+  patientSortDirection.addEventListener("click", () => {
+    const nextDirection = patientSortDirection.dataset.direction === "asc" ? "desc" : "asc";
+    patientSortDirection.dataset.direction = nextDirection;
+    patientSortDirection.textContent = nextDirection === "asc" ? "昇順" : "降順";
+    filterPatientRows();
+  });
+}
 </script>
 {% endblock %}

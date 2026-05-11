@@ -1103,7 +1103,13 @@ def register_admin_routes(app):
         auth = require_login()
         if auth:
             return auth
-        return render_template("broadcast.html", title="一斉送信", default_message=default_message("broadcast_default"))
+        return render_template(
+            "broadcast.html",
+            title="一斉送信",
+            default_message=default_message("broadcast_default"),
+            patients=safe_call(load_patients, []),
+            error_message="",
+        )
 
     @app.route("/admin/broadcast/send", methods=["POST"])
     def broadcast_send():
@@ -1111,7 +1117,19 @@ def register_admin_routes(app):
         if auth:
             return auth
         message = request.form.get("message", "").strip()
-        return render_template("broadcast_result.html", title="一斉送信結果", **send_to_patients(load_patients(), message, with_safety_buttons=True, send_type="一斉送信"))
+        patients = load_patients()
+        selected_patient_ids = set(request.form.getlist("patient_ids"))
+        if request.form.get("selection_mode") == "selected":
+            if not selected_patient_ids:
+                return render_template(
+                    "broadcast.html",
+                    title="一斉送信",
+                    default_message=message or default_message("broadcast_default"),
+                    patients=patients,
+                    error_message="送信対象を1人以上選択してください。",
+                )
+            patients = [p for p in patients if p.get("patient_id", "") in selected_patient_ids]
+        return render_template("broadcast_result.html", title="一斉送信結果", **send_to_patients(patients, message, with_safety_buttons=True, send_type="一斉送信"))
 
     @app.route("/admin/remind")
     def remind():

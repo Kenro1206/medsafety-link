@@ -1,13 +1,89 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card" style="max-width:900px;">
+{% if error_message %}<div class="card error">{{ error_message }}</div>{% endif %}
+
+<div class="card">
   <form method="POST" action="/admin/broadcast/send">
     <label>送信メッセージ</label><br>
     <textarea name="message" style="height:120px;">{{ default_message }}</textarea><br><br>
-    <button>登録済み患者に回答ボタン付きで一斉送信</button>
+    <input type="hidden" name="selection_mode" value="selected">
+
+    <div class="section-title">送信対象</div>
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <label for="broadcastPatientSearch"><strong>検索:</strong></label>
+      <input id="broadcastPatientSearch" type="search" placeholder="患者IDまたは氏名" style="max-width:280px;">
+      <button type="button" id="selectVisiblePatients">表示中を選択</button>
+      <button type="button" id="clearSelectedPatients">選択解除</button>
+      <span id="broadcastPatientStatus" class="muted"></span>
+    </div>
+
+    <table id="broadcastPatientTable">
+      <tr><th>送信</th><th>患者ID</th><th>氏名</th><th>都道府県</th><th>患者区分</th><th>LINE登録</th></tr>
+      {% for p in patients %}
+        <tr class="broadcast-patient-row" data-search="{{ p.patient_id }} {{ p.name }}">
+          <td>
+            <input class="broadcast-patient-check" type="checkbox" name="patient_ids" value="{{ p.patient_id }}" {% if p.line_user_id %}checked{% else %}disabled{% endif %}>
+          </td>
+          <td>{{ p.patient_id }}</td>
+          <td>{{ p.name }}</td>
+          <td>{{ p.prefecture }}</td>
+          <td>{{ p.patient_type }}</td>
+          <td>{% if p.line_user_id %}<span class="success">登録済み</span>{% else %}<span class="muted">未登録</span>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" style="text-align:center;color:#666;">患者データがありません。</td></tr>
+      {% endfor %}
+    </table>
+
+    <button style="margin-top:14px;">選択した患者に回答ボタン付きで一斉送信</button>
     <div class="muted" style="margin-top:10px;">
-      LINE上では「無事」「体調不良」「薬・インスリン不足」「低血糖が心配」「至急連絡希望」の回答ボタンが表示されます。
+      LINE上では、設定画面で登録した回答ボタンが表示されます。
     </div>
   </form>
 </div>
+
+<script>
+const broadcastSearch = document.getElementById("broadcastPatientSearch");
+const broadcastStatus = document.getElementById("broadcastPatientStatus");
+
+function updateBroadcastPatientRows() {
+  const query = (broadcastSearch?.value || "").trim().toLowerCase();
+  let visibleCount = 0;
+  let totalCount = 0;
+  let selectedCount = 0;
+  document.querySelectorAll(".broadcast-patient-row").forEach(row => {
+    totalCount += 1;
+    const visible = !query || (row.dataset.search || "").toLowerCase().includes(query);
+    row.style.display = visible ? "" : "none";
+    if (visible) visibleCount += 1;
+  });
+  document.querySelectorAll(".broadcast-patient-check:checked").forEach(() => {
+    selectedCount += 1;
+  });
+  if (broadcastStatus) {
+    broadcastStatus.textContent = `表示 ${visibleCount} / ${totalCount} 件、選択 ${selectedCount} 件`;
+  }
+}
+
+document.getElementById("selectVisiblePatients")?.addEventListener("click", () => {
+  document.querySelectorAll(".broadcast-patient-row").forEach(row => {
+    const checkbox = row.querySelector(".broadcast-patient-check");
+    if (checkbox && !checkbox.disabled) checkbox.checked = row.style.display !== "none";
+  });
+  updateBroadcastPatientRows();
+});
+
+document.getElementById("clearSelectedPatients")?.addEventListener("click", () => {
+  document.querySelectorAll(".broadcast-patient-check").forEach(checkbox => {
+    checkbox.checked = false;
+  });
+  updateBroadcastPatientRows();
+});
+
+document.querySelectorAll(".broadcast-patient-check").forEach(checkbox => {
+  checkbox.addEventListener("change", updateBroadcastPatientRows);
+});
+if (broadcastSearch) broadcastSearch.addEventListener("input", updateBroadcastPatientRows);
+updateBroadcastPatientRows();
+</script>
 {% endblock %}
