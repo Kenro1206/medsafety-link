@@ -29,11 +29,11 @@
     パスワード欄は空欄のまま更新すると変更されません。
     削除は取り消せません。現在操作中の施設と最後の1施設は削除できません。
   </div>
-  <table>
-    <tr><th>施設ID</th><th>施設名</th><th>診療科</th><th>担当者</th><th>担当者メール</th><th>パスワード変更</th><th>操作</th></tr>
+  <table class="institutions-table">
+    <tr><th class="institution-id-col">施設ID</th><th>施設名</th><th>診療科</th><th>担当者</th><th>担当者メール</th><th>パスワード変更</th><th>操作</th></tr>
     {% for institution_id, inst in institutions.items() %}
       <tr>
-        <td style="word-break:break-all;">{{ institution_id }}{% if institution_id == current_institution_id %}<br><span class="success">現在操作中</span>{% endif %}</td>
+        <td class="institution-id-col">{{ institution_id }}{% if institution_id == current_institution_id %}<br><span class="success">現在操作中</span>{% endif %}</td>
         <td>
           <form method="POST" id="update-{{ institution_id }}">
             <input type="hidden" name="action" value="update">
@@ -64,6 +64,18 @@
     {% endfor %}
   </table>
 </div>
+<style>
+.institutions-table .institution-id-col {
+  min-width: 180px;
+  width: 220px;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+.institutions-table input {
+  min-width: 140px;
+}
+</style>
 <script>
 document.querySelectorAll('.delete-institution-form').forEach(form => {
   form.addEventListener('submit', event => {
