@@ -6,10 +6,10 @@
 <div class="card">
   <div class="section-title">患者の追加・更新</div>
   <form method="POST" class="patient-entry-form">
-    <div><label>患者ID</label><br><input name="patient_id" required></div>
-    <div><label>氏名</label><br><input name="name" required></div>
-    <div><label>電話番号</label><br><input name="phone"></div>
-    <div><label>都道府県</label><br><input name="prefecture" placeholder="例: 熊本県"></div>
+    <div class="patient-entry-id"><label>患者ID</label><br><input name="patient_id" required></div>
+    <div class="patient-entry-name"><label>氏名</label><br><input name="name" required></div>
+    <div class="patient-entry-phone"><label>電話番号</label><br><input name="phone"></div>
+    <div class="patient-entry-prefecture"><label>都道府県</label><br><input name="prefecture" placeholder="例: 熊本県"></div>
     <div><label>LINE user_id</label><br><input name="line_user_id"></div>
     <div>
       <label>患者区分</label><br>
@@ -30,7 +30,7 @@
 <style>
 .patient-entry-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: minmax(110px, 0.8fr) minmax(220px, 1.6fr) minmax(120px, 0.8fr) minmax(96px, 0.65fr) minmax(180px, 1.2fr) minmax(130px, 0.9fr) minmax(180px, 1.2fr) minmax(88px, 0.5fr);
   gap: 10px;
   align-items: end;
 }
@@ -43,6 +43,39 @@
 .patient-entry-form button[type="submit"] {
   min-width: 88px;
   width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .patient-entry-form {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+#patientTable th:nth-child(2),
+#patientTable td:nth-child(2) {
+  min-width: 160px;
+}
+
+#patientTable th:nth-child(3),
+#patientTable td:nth-child(3) {
+  width: 120px;
+  min-width: 110px;
+}
+
+#patientTable th:nth-child(4),
+#patientTable td:nth-child(4) {
+  width: 96px;
+  min-width: 90px;
+}
+
+#patientTable input[name="phone"] {
+  min-width: 105px !important;
+  width: 105px;
+}
+
+#patientTable input[name="prefecture"] {
+  min-width: 80px !important;
+  width: 80px;
 }
 </style>
 
