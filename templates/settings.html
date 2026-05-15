@@ -82,6 +82,22 @@
 
     <div class="section-title">LINE設定</div>
 
+    <div style="padding:12px;border:1px solid #d9e7ff;background:#f8fbff;border-radius:8px;margin-bottom:16px;">
+      <strong>Webhook URLについて</strong>
+      <p style="margin:8px 0 6px;">
+        新しい施設でも、LINE Developersに設定するWebhook URLは全施設共通です。
+      </p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input id="line_webhook_url" value="https://medsafety-link.onrender.com/callback" readonly style="max-width:460px;">
+        <button type="button" onclick="copyText('line_webhook_url')">コピー</button>
+      </div>
+      <div class="muted" style="margin-top:8px;">
+        LINE Developersの対象チャネル → Messaging API → Webhook URL に上記URLを入力し、
+        Webhookの利用をONにして検証してください。施設の判定はLINEの
+        <code>destination</code> と、この画面の「LINE destination / Bot userId」で行います。
+      </div>
+    </div>
+
     <div class="form-row">
       <label>チャネルアクセストークン</label><br>
       <input name="line_token" value="{{ institution.line.channel_access_token }}">
