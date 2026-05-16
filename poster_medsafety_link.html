@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MedSafety Link Poster</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #dfe6ee;
+      color: #162033;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "YuGothic", "Noto Sans JP", sans-serif;
+      line-height: 1.55;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #f7fafc;
+      position: relative;
+      overflow: hidden;
+      padding: 18mm 16mm 14mm;
+    }
+
+    .top-band {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 86mm;
+      background:
+        linear-gradient(135deg, rgba(24, 94, 152, 0.94), rgba(37, 126, 111, 0.92)),
+        radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.26), transparent 31%),
+        radial-gradient(circle at 10% 70%, rgba(255, 255, 255, 0.20), transparent 29%);
+    }
+
+    .mesh {
+      position: absolute;
+      top: 13mm;
+      right: 8mm;
+      width: 74mm;
+      height: 58mm;
+      opacity: 0.23;
+      background-image:
+        linear-gradient(60deg, transparent 46%, rgba(255,255,255,.9) 47%, rgba(255,255,255,.9) 49%, transparent 50%),
+        linear-gradient(120deg, transparent 46%, rgba(255,255,255,.9) 47%, rgba(255,255,255,.9) 49%, transparent 50%);
+      background-size: 12mm 12mm;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #176b8f;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    h1 {
+      margin: 17mm 0 0;
+      color: white;
+      font-size: 43px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 5mm 0 0;
+      color: rgba(255, 255, 255, 0.94);
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .lead {
+      margin: 11mm 0 0;
+      width: 118mm;
+      color: rgba(255, 255, 255, 0.94);
+      font-size: 13px;
+    }
+
+    .hero-panel {
+      margin-top: 14mm;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 10mm;
+      align-items: stretch;
+    }
+
+    .phone {
+      background: #111827;
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: 0 18px 38px rgba(16, 32, 48, 0.22);
+    }
+
+    .phone-screen {
+      min-height: 98mm;
+      background: #eef7f4;
+      border-radius: 12px;
+      padding: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chat-head {
+      color: #16655a;
+      font-weight: 800;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .bubble {
+      background: white;
+      border-radius: 12px;
+      padding: 10px 11px;
+      box-shadow: 0 4px 10px rgba(28, 71, 80, 0.08);
+      font-size: 12px;
+    }
+
+    .quick-grid {
+      display: grid;
+      gap: 7px;
+      margin-top: 4px;
+    }
+
+    .quick {
+      background: #dff4ed;
+      color: #116555;
+      border: 1px solid #b9ded3;
+      border-radius: 999px;
+      padding: 7px 9px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .dashboard {
+      background: white;
+      border-radius: 8px;
+      padding: 13px;
+      box-shadow: 0 16px 34px rgba(22, 32, 51, 0.14);
+      border: 1px solid #dce6ef;
+    }
+
+    .dashboard h2,
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      color: #165c85;
+      letter-spacing: 0;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .metric {
+      border: 1px solid #dce6ef;
+      border-radius: 7px;
+      padding: 9px;
+      background: #fbfdff;
+    }
+
+    .metric span {
+      display: block;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 26px;
+      line-height: 1.1;
+      margin-top: 3px;
+      color: #152238;
+    }
+
+    .metric.alert strong {
+      color: #c9342d;
+    }
+
+    .alert-row {
+      border-left: 5px solid #d43b35;
+      background: #fff4f2;
+      padding: 9px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #9f2520;
+    }
+
+    .sections {
+      margin-top: 11mm;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7mm;
+    }
+
+    .section {
+      background: white;
+      border: 1px solid #dce6ef;
+      border-radius: 8px;
+      padding: 13px 13px 12px;
+      min-height: 54mm;
+    }
+
+    .section ul {
+      margin: 0;
+      padding-left: 1.1em;
+      font-size: 11.5px;
+    }
+
+    .section li {
+      margin: 0 0 5px;
+    }
+
+    .flow {
+      margin-top: 8mm;
+      background: #eaf4f7;
+      border: 1px solid #cde2e8;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .flow-title {
+      font-weight: 900;
+      color: #165c85;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 7px;
+      align-items: start;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: #1d6f9a;
+      font-weight: 900;
+    }
+
+    .bottom {
+      margin-top: 9mm;
+      display: grid;
+      grid-template-columns: 1fr 38mm;
+      gap: 10mm;
+      align-items: end;
+    }
+
+    .tagline {
+      font-size: 23px;
+      line-height: 1.28;
+      font-weight: 900;
+      color: #132033;
+    }
+
+    .tagline span {
+      color: #166f77;
+    }
+
+    .contact {
+      margin-top: 4mm;
+      color: #4b5c72;
+      font-size: 10.5px;
+    }
+
+    .qr {
+      width: 38mm;
+      height: 38mm;
+      border: 2px dashed #7e95aa;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #64748b;
+      font-size: 10px;
+      text-align: center;
+      background: white;
+      padding: 8px;
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+
+      .page {
+        margin: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="top-band"></div>
+    <div class="mesh"></div>
+
+    <div class="content">
+      <div class="brand"><div class="mark">M</div>MedSafety Link</div>
+      <h1>LINEでつながる<br>安否確認・症状確認</h1>
+      <div class="subtitle">災害時も、通常診療の補助にも。患者さんの状況を一覧で確認できます。</div>
+      <p class="lead">
+        患者さんはLINEでボタン回答。医療者はダッシュボードで回答済み・未回答・重症アラートを確認し、
+        必要な患者さんへ優先して対応できます。
+      </p>
+
+      <div class="hero-panel">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="chat-head">患者さんのLINE画面</div>
+            <div class="bubble">
+              【安否確認】現在の状況を返信してください。
+              <div class="quick-grid">
+                <div class="quick">無事</div>
+                <div class="quick">体調不良</div>
+                <div class="quick">薬・インスリン不足</div>
+                <div class="quick">至急連絡希望</div>
+              </div>
+            </div>
+            <div class="bubble">写真や位置情報も必要時に送信できます。</div>
+          </div>
+        </div>
+
+        <div class="dashboard">
+          <h2>医療者側ダッシュボード</h2>
+          <div class="metrics">
+            <div class="metric"><span>患者数</span><strong>120</strong></div>
+            <div class="metric"><span>回答済</span><strong>86</strong></div>
+            <div class="metric"><span>未回答</span><strong>34</strong></div>
+            <div class="metric alert"><span>緊急未対応</span><strong>3</strong></div>
+          </div>
+          <div class="alert-row">重症アラート: 至急確認が必要な回答を優先表示</div>
+        </div>
+      </div>
+
+      <div class="sections">
+        <section class="section">
+          <h2>できること</h2>
+          <ul>
+            <li>一斉安否確認</li>
+            <li>未回答者への再送</li>
+            <li>重症・要対応者の抽出</li>
+            <li>個別メッセージ送信</li>
+            <li>回答履歴・送信履歴の保存</li>
+          </ul>
+        </section>
+
+        <section class="section">
+          <h2>活用場面</h2>
+          <ul>
+            <li>災害時の安否確認</li>
+            <li>電話連絡が集中する場面</li>
+            <li>通常時の体調確認</li>
+            <li>足病変写真の確認</li>
+            <li>位置情報を用いた所在確認</li>
+          </ul>
+        </section>
+
+        <section class="section">
+          <h2>対象例</h2>
+          <ul>
+            <li>1型糖尿病患者</li>
+            <li>透析患者</li>
+            <li>足病変フォロー患者</li>
+            <li>災害時に継続支援が必要な患者</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="flow">
+        <div class="flow-title">運用イメージ</div>
+        <div class="steps">
+          <div class="step"><div class="num">1</div><div>対象者を選んでLINE一斉送信</div></div>
+          <div class="step"><div class="num">2</div><div>患者さんがボタンで回答</div></div>
+          <div class="step"><div class="num">3</div><div>回答を管理画面に自動集約</div></div>
+          <div class="step"><div class="num">4</div><div>要対応者から優先確認</div></div>
+        </div>
+      </div>
+
+      <div class="bottom">
+        <div>
+          <div class="tagline">電話が集中する前に、<br><span>対応が必要な患者さん</span>を見つける。</div>
+          <div class="contact">
+            お問い合わせ: 熊本中央病院 糖尿病・内分泌・代謝内科 西田 健朗<br>
+            E-mail: knishida1206@gmail.com
+          </div>
+        </div>
+        <div class="qr">QRコード<br>貼付欄</div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
