@@ -8,7 +8,7 @@ from routes.webhook_routes import register_webhook_routes
 from routes.setup_routes import register_setup_routes
 from core.auth import can_manage_institutions
 from core.config_manager import load_settings
-from core.institution_context import get_current_institution_id
+from core.institution_context import get_current_institution, get_current_institution_id
 from services.sheets_service import get_system_mode
 
 load_dotenv()
@@ -30,6 +30,7 @@ def inject_permissions():
     return {
         "can_manage_institutions": can_manage_institutions(),
         "current_institution_id": get_current_institution_id(),
+        "global_current_institution": get_current_institution() or {},
         "global_current_mode": current_mode,
     }
 

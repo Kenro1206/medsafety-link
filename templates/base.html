@@ -62,6 +62,24 @@
       color: #666;
     }
 
+    .header-meta {
+      margin-left: auto;
+      text-align: right;
+      font-size: 13px;
+      color: #333;
+      max-width: 420px;
+    }
+
+    .header-meta strong {
+      color: #111;
+      font-size: 14px;
+    }
+
+    .header-meta .muted {
+      display: block;
+      margin-top: 2px;
+    }
+
     .menu {
       margin-bottom: 18px;
       font-size: 14px;
@@ -284,6 +302,18 @@
         padding: 10px;
       }
 
+      .header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .header-meta {
+        margin-left: 58px;
+        text-align: left;
+        max-width: none;
+        width: calc(100% - 58px);
+      }
+
       .card {
         padding: 12px;
       }
@@ -308,6 +338,12 @@
       <div class="header-title">MedSafety Link</div>
       <div class="header-subtitle">医療機関による安否確認システム</div>
     </div>
+    {% if show_menu is not defined or show_menu %}
+      <div class="header-meta">
+        <strong>{{ global_current_institution.name or "施設名未設定" }}</strong>
+        <span class="muted">{{ global_current_institution.department or "診療科未設定" }}</span>
+      </div>
+    {% endif %}
   </div>
 
   {% if show_menu is not defined or show_menu %}
