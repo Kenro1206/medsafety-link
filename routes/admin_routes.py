@@ -1108,8 +1108,43 @@ def register_admin_routes(app):
             title="一斉送信",
             default_message=default_message("broadcast_default"),
             patients=safe_call(load_patients, []),
+            success_message="標準メッセージを保存しました。" if request.args.get("saved") == "1" else "",
             error_message="",
         )
+
+    @app.route("/admin/broadcast/message/save", methods=["POST"])
+    def broadcast_message_save():
+        auth = require_login()
+        if auth:
+            return auth
+
+        message = request.form.get("message", "").strip()
+        if not message:
+            return render_template(
+                "broadcast.html",
+                title="一斉送信",
+                default_message=default_message("broadcast_default"),
+                patients=safe_call(load_patients, []),
+                success_message="",
+                error_message="保存するメッセージを入力してください。",
+            )
+
+        institution_id = get_current_institution_id()
+        settings = load_settings()
+        institution = settings.get("institutions", {}).get(institution_id)
+        if not institution:
+            return render_template(
+                "broadcast.html",
+                title="一斉送信",
+                default_message=message,
+                patients=safe_call(load_patients, []),
+                success_message="",
+                error_message="施設設定が見つかりません。",
+            )
+
+        institution.setdefault("messages", {})["broadcast_default"] = message
+        save_settings(settings)
+        return redirect(f"{active_admin_path('/admin/broadcast')}&saved=1")
 
     @app.route("/admin/broadcast/send", methods=["POST"])
     def broadcast_send():
@@ -1126,6 +1161,7 @@ def register_admin_routes(app):
                     title="一斉送信",
                     default_message=message or default_message("broadcast_default"),
                     patients=patients,
+                    success_message="",
                     error_message="送信対象を1人以上選択してください。",
                 )
             patients = [p for p in patients if p.get("patient_id", "") in selected_patient_ids]

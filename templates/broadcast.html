@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% if success_message %}<div class="card success">{{ success_message }}</div>{% endif %}
 {% if error_message %}<div class="card error">{{ error_message }}</div>{% endif %}
 
 <div class="card">
@@ -36,9 +37,18 @@
       {% endfor %}
     </table>
 
-    <button style="margin-top:14px;">選択した患者に回答ボタン付きで一斉送信</button>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button type="submit">選択した患者に回答ボタン付きで一斉送信</button>
+      <button
+        type="submit"
+        formaction="/admin/broadcast/message/save{{ active_qs }}"
+        formmethod="POST"
+      >
+        この文面を標準メッセージとして保存
+      </button>
+    </div>
     <div class="muted" style="margin-top:10px;">
-      LINE上では、設定画面で登録した回答ボタンが表示されます。
+      LINE上では、設定画面で登録した回答ボタンが表示されます。文面を次回以降も使う場合は、送信前に保存できます。
     </div>
   </form>
 </div>
