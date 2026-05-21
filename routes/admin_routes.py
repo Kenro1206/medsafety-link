@@ -66,8 +66,20 @@ def register_admin_routes(app):
 
     def current_safety_reply_options():
         settings = load_settings()
-        institution = get_current_institution() or {}
-        return institution.get("safety_reply_options") or settings.get("safety_reply_options", [])
+        institution_id = get_current_institution_id()
+        institution = settings.get("institutions", {}).get(institution_id, {})
+        options = institution.get("safety_reply_options") or settings.get("safety_reply_options", [])
+        fallback_options = settings.get("safety_reply_options", [])
+        normalized = []
+        for index in range(5):
+            option = options[index] if index < len(options) and isinstance(options[index], dict) else {}
+            fallback = fallback_options[index] if index < len(fallback_options) else {}
+            normalized.append({
+                "label": option.get("label") or fallback.get("label", ""),
+                "code": option.get("code") or fallback.get("code", ""),
+                "text": str(option.get("text") or fallback.get("text") or index + 1),
+            })
+        return normalized
 
     def save_broadcast_message_and_buttons(message):
         institution_id = get_current_institution_id()
