@@ -44,7 +44,8 @@
     </div>
   </div>
 
-  <form method="POST" action="/admin/settings/save" enctype="multipart/form-data">
+  <form method="POST" action="/admin/settings/save{{ active_qs }}" enctype="multipart/form-data">
+    <input type="hidden" name="active_institution_id" value="{{ current_institution_id }}">
 
     <div class="section-title">施設情報</div>
 
@@ -312,20 +313,21 @@
     </div>
 
     <button type="submit">保存</button>
-    <a href="/admin/line/status"><button type="button">LINE接続診断</button></a>
-    <a href="/admin/webhook/status"><button type="button">Webhook受信診断</button></a>
-    <a href="/admin/google/status"><button type="button">Google接続診断</button></a>
-    <a href="/admin/google/drive/status"><button type="button">Google Drive画像保存診断</button></a>
-    <a href="/admin/google/init"><button type="button">Googleシート初期化</button></a>
+    <a href="/admin/line/status{{ active_qs }}"><button type="button">LINE接続診断</button></a>
+    <a href="/admin/webhook/status{{ active_qs }}"><button type="button">Webhook受信診断</button></a>
+    <a href="/admin/google/status{{ active_qs }}"><button type="button">Google接続診断</button></a>
+    <a href="/admin/google/drive/status{{ active_qs }}"><button type="button">Google Drive画像保存診断</button></a>
+    <a href="/admin/google/init{{ active_qs }}"><button type="button">Googleシート初期化</button></a>
     {% if can_manage_institutions %}
-      <a href="/admin/settings/storage"><button type="button">設定保存先診断</button></a>
+      <a href="/admin/settings/storage{{ active_qs }}"><button type="button">設定保存先診断</button></a>
     {% endif %}
   </form>
 </div>
 
 <div class="card">
   <div class="section-title">ログインパスワード変更</div>
-  <form method="POST" action="/admin/settings/password">
+  <form method="POST" action="/admin/settings/password{{ active_qs }}">
+    <input type="hidden" name="active_institution_id" value="{{ current_institution_id }}">
     <div class="form-row">
       <label>現在のパスワード</label><br>
       <input type="password" name="current_password" autocomplete="current-password" required>

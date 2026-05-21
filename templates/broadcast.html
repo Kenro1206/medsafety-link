@@ -3,7 +3,8 @@
 {% if error_message %}<div class="card error">{{ error_message }}</div>{% endif %}
 
 <div class="card">
-  <form method="POST" action="/admin/broadcast/send">
+  <form method="POST" action="/admin/broadcast/send{{ active_qs }}">
+    <input type="hidden" name="active_institution_id" value="{{ current_institution_id }}">
     <label>送信メッセージ</label><br>
     <textarea name="message" style="height:120px;">{{ default_message }}</textarea><br><br>
     <input type="hidden" name="selection_mode" value="selected">

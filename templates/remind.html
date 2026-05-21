@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card" style="max-width:900px;">
-  <form method="POST" action="/admin/remind/send">
+  <form method="POST" action="/admin/remind/send{{ active_qs }}">
+    <input type="hidden" name="active_institution_id" value="{{ current_institution_id }}">
     <label>再送メッセージ</label><br>
     <textarea name="message" style="height:120px;">{{ default_message }}</textarea><br><br>
     <button>未回答者へ回答ボタン付きで再送</button>

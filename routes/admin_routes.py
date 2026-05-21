@@ -604,8 +604,8 @@ def register_admin_routes(app):
         return render_template(
             "settings.html",
             title="設定",
-            institution_id=get_current_institution_id(),
-            institution=s.get("institutions", {}).get(get_current_institution_id(), get_current_institution()),
+            institution_id=institution_id,
+            institution=s.get("institutions", {}).get(institution_id, get_current_institution()),
             current_mode=safe_call(get_system_mode, "NORMAL"),
             service_account_email=safe_call(get_service_account_email, ""),
             message_presets=get_message_presets(),
