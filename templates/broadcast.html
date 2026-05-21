@@ -7,7 +7,18 @@
   <form method="POST" action="/admin/broadcast/send{{ active_qs }}">
     <input type="hidden" name="active_institution_id" value="{{ current_institution_id }}">
     <label>送信メッセージ</label><br>
-    <textarea name="message" style="height:120px;">{{ default_message }}</textarea><br><br>
+    <textarea name="message" style="height:120px;">{{ default_message }}</textarea>
+    <div style="margin:10px 0 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button
+        type="submit"
+        formaction="/admin/broadcast/message/save{{ active_qs }}"
+        formmethod="POST"
+        style="background:#1f6feb;"
+      >
+        この文面を標準メッセージとして保存
+      </button>
+      <span class="muted">次回以降の一斉送信で、この文面が最初から表示されます。</span>
+    </div>
     <input type="hidden" name="selection_mode" value="selected">
 
     <div class="section-title">送信対象</div>
@@ -39,13 +50,6 @@
 
     <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <button type="submit">選択した患者に回答ボタン付きで一斉送信</button>
-      <button
-        type="submit"
-        formaction="/admin/broadcast/message/save{{ active_qs }}"
-        formmethod="POST"
-      >
-        この文面を標準メッセージとして保存
-      </button>
     </div>
     <div class="muted" style="margin-top:10px;">
       LINE上では、設定画面で登録した回答ボタンが表示されます。文面を次回以降も使う場合は、送信前に保存できます。
