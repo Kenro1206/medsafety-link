@@ -8,6 +8,17 @@
     <input type="hidden" name="active_institution_id" value="{{ current_institution_id }}">
     <label>送信メッセージ</label><br>
     <textarea name="message" style="height:120px;">{{ default_message }}</textarea>
+    <div class="section-title" style="margin-top:14px;">回答ボタン</div>
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;margin-bottom:12px;">
+      {% for option in safety_reply_options %}
+        <div>
+          <div class="muted">ボタン{{ loop.index }}</div>
+          <input name="safety_label_{{ loop.index }}" value="{{ option.label }}" style="font-size:13px;">
+          <div class="muted">回答コード</div>
+          <input name="safety_code_{{ loop.index }}" value="{{ option.code }}" style="font-size:12px;">
+        </div>
+      {% endfor %}
+    </div>
     <div style="margin:10px 0 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <button
         type="submit"
@@ -15,9 +26,9 @@
         formmethod="POST"
         style="background:#1f6feb;"
       >
-        この文面を標準メッセージとして保存
+        この文面と回答ボタンを保存
       </button>
-      <span class="muted">次回以降の一斉送信で、この文面が最初から表示されます。</span>
+      <span class="muted">次回以降の一斉送信で、この文面と回答ボタンが使われます。</span>
     </div>
     <input type="hidden" name="selection_mode" value="selected">
 
@@ -52,7 +63,7 @@
       <button type="submit">選択した患者に回答ボタン付きで一斉送信</button>
     </div>
     <div class="muted" style="margin-top:10px;">
-      LINE上では、設定画面で登録した回答ボタンが表示されます。文面を次回以降も使う場合は、送信前に保存できます。
+      LINE上では、この画面に表示されている回答ボタンが送信されます。
     </div>
   </form>
 </div>

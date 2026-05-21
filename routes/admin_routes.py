@@ -64,6 +64,33 @@ def register_admin_routes(app):
             templates[0] = fallback
         return templates
 
+    def current_safety_reply_options():
+        settings = load_settings()
+        institution = get_current_institution() or {}
+        return institution.get("safety_reply_options") or settings.get("safety_reply_options", [])
+
+    def save_broadcast_message_and_buttons(message):
+        institution_id = get_current_institution_id()
+        settings = load_settings()
+        institution = settings.get("institutions", {}).get(institution_id)
+        if not institution:
+            raise ValueError("施設設定が見つかりません。")
+
+        institution.setdefault("messages", {})["broadcast_default"] = message
+        fallback_options = institution.get("safety_reply_options") or settings.get("safety_reply_options", [])
+        saved_options = []
+        for index in range(5):
+            fallback = fallback_options[index] if index < len(fallback_options) else {}
+            label = request.form.get(f"safety_label_{index + 1}", "").strip() or fallback.get("label", "")
+            code = request.form.get(f"safety_code_{index + 1}", "").strip().upper() or fallback.get("code", "")
+            saved_options.append({
+                "label": label,
+                "code": code,
+                "text": str(index + 1),
+            })
+        institution["safety_reply_options"] = saved_options
+        save_settings(settings)
+
     def is_handled(response):
         return str(response.get("handled", "")).upper() in ["TRUE", "済", "DONE", "1"]
 
@@ -1107,8 +1134,9 @@ def register_admin_routes(app):
             "broadcast.html",
             title="一斉送信",
             default_message=default_message("broadcast_default"),
+            safety_reply_options=current_safety_reply_options(),
             patients=safe_call(load_patients, []),
-            success_message="標準メッセージを保存しました。" if request.args.get("saved") == "1" else "",
+            success_message="標準メッセージと回答ボタンを保存しました。" if request.args.get("saved") == "1" else "",
             error_message="",
         )
 
@@ -1124,26 +1152,24 @@ def register_admin_routes(app):
                 "broadcast.html",
                 title="一斉送信",
                 default_message=default_message("broadcast_default"),
+                safety_reply_options=current_safety_reply_options(),
                 patients=safe_call(load_patients, []),
                 success_message="",
                 error_message="保存するメッセージを入力してください。",
             )
 
-        institution_id = get_current_institution_id()
-        settings = load_settings()
-        institution = settings.get("institutions", {}).get(institution_id)
-        if not institution:
+        try:
+            save_broadcast_message_and_buttons(message)
+        except ValueError as e:
             return render_template(
                 "broadcast.html",
                 title="一斉送信",
                 default_message=message,
+                safety_reply_options=current_safety_reply_options(),
                 patients=safe_call(load_patients, []),
                 success_message="",
-                error_message="施設設定が見つかりません。",
+                error_message=str(e),
             )
-
-        institution.setdefault("messages", {})["broadcast_default"] = message
-        save_settings(settings)
         return redirect(f"{active_admin_path('/admin/broadcast')}&saved=1")
 
     @app.route("/admin/broadcast/send", methods=["POST"])
@@ -1152,6 +1178,8 @@ def register_admin_routes(app):
         if auth:
             return auth
         message = request.form.get("message", "").strip()
+        if message:
+            save_broadcast_message_and_buttons(message)
         patients = load_patients()
         selected_patient_ids = set(request.form.getlist("patient_ids"))
         if request.form.get("selection_mode") == "selected":
@@ -1160,6 +1188,7 @@ def register_admin_routes(app):
                     "broadcast.html",
                     title="一斉送信",
                     default_message=message or default_message("broadcast_default"),
+                    safety_reply_options=current_safety_reply_options(),
                     patients=patients,
                     success_message="",
                     error_message="送信対象を1人以上選択してください。",
