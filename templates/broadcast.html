@@ -28,6 +28,14 @@
       >
         この文面と回答ボタンを保存
       </button>
+      <button
+        type="submit"
+        formaction="/admin/broadcast/message/reset{{ active_qs }}"
+        formmethod="POST"
+        style="background:#6b7280;"
+      >
+        設定パターンに戻す
+      </button>
       <span class="muted">次回以降の一斉送信で、この文面と回答ボタンが使われます。</span>
     </div>
     <input type="hidden" name="selection_mode" value="selected">

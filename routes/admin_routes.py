@@ -103,6 +103,20 @@ def register_admin_routes(app):
         institution["safety_reply_options"] = saved_options
         save_settings(settings)
 
+    def reset_broadcast_message_and_buttons_to_profile():
+        institution_id = get_current_institution_id()
+        settings = load_settings()
+        institution = settings.get("institutions", {}).get(institution_id)
+        if not institution:
+            raise ValueError("施設設定が見つかりません。")
+
+        profile_key = institution.get("message_profile") or "t1dm"
+        preset = get_message_presets().get(profile_key) or get_message_presets()["t1dm"]
+        preset_messages = preset.get("messages", {})
+        institution.setdefault("messages", {})["broadcast_default"] = preset_messages.get("broadcast_default", "")
+        institution["safety_reply_options"] = copy.deepcopy(preset.get("safety_reply_options", []))
+        save_settings(settings)
+
     def is_handled(response):
         return str(response.get("handled", "")).upper() in ["TRUE", "済", "DONE", "1"]
 
@@ -1148,7 +1162,13 @@ def register_admin_routes(app):
             default_message=default_message("broadcast_default"),
             safety_reply_options=current_safety_reply_options(),
             patients=safe_call(load_patients, []),
-            success_message="標準メッセージと回答ボタンを保存しました。" if request.args.get("saved") == "1" else "",
+            success_message=(
+                "標準メッセージと回答ボタンを保存しました。"
+                if request.args.get("saved") == "1"
+                else "施設設定のメッセージ設定パターンに戻しました。"
+                if request.args.get("reset") == "1"
+                else ""
+            ),
             error_message="",
         )
 
@@ -1183,6 +1203,26 @@ def register_admin_routes(app):
                 error_message=str(e),
             )
         return redirect(f"{active_admin_path('/admin/broadcast')}&saved=1")
+
+    @app.route("/admin/broadcast/message/reset", methods=["POST"])
+    def broadcast_message_reset():
+        auth = require_login()
+        if auth:
+            return auth
+
+        try:
+            reset_broadcast_message_and_buttons_to_profile()
+        except ValueError as e:
+            return render_template(
+                "broadcast.html",
+                title="一斉送信",
+                default_message=default_message("broadcast_default"),
+                safety_reply_options=current_safety_reply_options(),
+                patients=safe_call(load_patients, []),
+                success_message="",
+                error_message=str(e),
+            )
+        return redirect(f"{active_admin_path('/admin/broadcast')}&reset=1")
 
     @app.route("/admin/broadcast/send", methods=["POST"])
     def broadcast_send():
