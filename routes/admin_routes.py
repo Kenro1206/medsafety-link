@@ -136,6 +136,80 @@ def register_admin_routes(app):
             formatted.append(item)
         return formatted
 
+    def patient_search_text(patient):
+        values = [
+            patient.get("patient_id", ""),
+            patient.get("name", ""),
+            patient.get("phone", ""),
+            patient.get("line_user_id", ""),
+            patient.get("prefecture", ""),
+            patient.get("patient_type", ""),
+            patient.get("notes", ""),
+        ]
+        return " ".join(str(value) for value in values).lower()
+
+    def matches_patient_identity(row, patient):
+        patient_id = patient.get("patient_id", "")
+        line_user_id = patient.get("line_user_id", "")
+        name = patient.get("name", "")
+        return (
+            (patient_id and row.get("patient_id") == patient_id)
+            or (line_user_id and row.get("line_user_id") == line_user_id)
+            or (name and row.get("name") == name)
+        )
+
+    def build_patient_timeline(patient, responses, sent_messages):
+        items = []
+        for response in responses:
+            if not matches_patient_identity(response, patient):
+                continue
+            code = response.get("code", "")
+            label = response.get("label", "")
+            latitude = response.get("latitude", "")
+            longitude = response.get("longitude", "")
+            map_url = ""
+            if latitude and longitude:
+                map_url = f"https://www.google.com/maps?q={latitude},{longitude}"
+            items.append({
+                "timestamp_raw": response.get("timestamp", ""),
+                "timestamp": format_jst_timestamp(response.get("timestamp", "")),
+                "direction": "受信",
+                "direction_class": "incoming",
+                "kind": response.get("event_type", ""),
+                "title": label or code or "メッセージ",
+                "body": code,
+                "handled": is_handled(response),
+                "media_id": response.get("media_id", ""),
+                "media_url": response.get("media_url", ""),
+                "map_url": map_url,
+                "latitude": latitude,
+                "longitude": longitude,
+                "detail": "",
+            })
+
+        for message in sent_messages:
+            if not matches_patient_identity(message, patient):
+                continue
+            ok = str(message.get("ok", "")).upper() == "TRUE"
+            items.append({
+                "timestamp_raw": message.get("timestamp", ""),
+                "timestamp": format_jst_timestamp(message.get("timestamp", "")),
+                "direction": "送信",
+                "direction_class": "outgoing",
+                "kind": message.get("send_type", ""),
+                "title": message.get("send_type", "送信"),
+                "body": message.get("message", ""),
+                "ok": ok,
+                "media_id": "",
+                "media_url": "",
+                "map_url": "",
+                "latitude": "",
+                "longitude": "",
+                "detail": message.get("detail", ""),
+            })
+
+        return sorted(items, key=lambda item: item.get("timestamp_raw", ""))
+
     def manual_markdown_to_html(markdown_text):
         html_parts = []
         paragraph = []
@@ -1046,6 +1120,61 @@ def register_admin_routes(app):
             default_message=default_message("individual_default"),
             individual_templates=individual_templates(),
             safety_message=default_message("broadcast_default"),
+        )
+
+    @app.route("/admin/patient_timeline")
+    def patient_timeline():
+        auth = require_login()
+        if auth:
+            return auth
+
+        query = request.args.get("q", "").strip()
+        selected_patient_id = request.args.get("patient_id", "").strip()
+        patients = safe_call(load_patients, [])
+        query_lower = query.lower()
+        matched_patients = []
+        if query_lower:
+            matched_patients = [
+                patient for patient in patients
+                if query_lower in patient_search_text(patient)
+            ]
+
+        selected_patient = None
+        if selected_patient_id:
+            selected_patient = next(
+                (patient for patient in patients if patient.get("patient_id") == selected_patient_id),
+                None,
+            )
+        elif query_lower:
+            exact_match = next(
+                (
+                    patient for patient in matched_patients
+                    if patient.get("patient_id", "").lower() == query_lower
+                    or patient.get("line_user_id", "").lower() == query_lower
+                ),
+                None,
+            )
+            if exact_match:
+                selected_patient = exact_match
+            elif len(matched_patients) == 1:
+                selected_patient = matched_patients[0]
+
+        responses = []
+        sent_messages = []
+        timeline_items = []
+        if selected_patient:
+            responses = safe_call(load_responses, [])
+            sent_messages = safe_call(load_sent_messages, [])
+            timeline_items = build_patient_timeline(selected_patient, responses, sent_messages)
+
+        return render_template(
+            "patient_timeline.html",
+            title="患者タイムライン",
+            query=query,
+            matched_patients=matched_patients,
+            selected_patient=selected_patient,
+            timeline_items=timeline_items,
+            timeline_count=len(timeline_items),
         )
 
     @app.route("/admin/responses")

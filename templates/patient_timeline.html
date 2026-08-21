@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <div class="section-title">患者検索</div>
+  <form method="GET" action="/admin/patient_timeline" class="timeline-search-form">
+    <input type="hidden" name="active_institution_id" value="{{ current_institution_id }}">
+    <input
+      type="search"
+      name="q"
+      value="{{ query }}"
+      placeholder="患者ID・氏名・電話番号・LINE user_id など"
+      autocomplete="off"
+    >
+    <button>検索</button>
+  </form>
+  <div class="muted" style="margin-top:8px;">患者を検索し、該当した患者さんとの受信・送信履歴を古い順に表示します。</div>
+</div>
+
+{% if query and matched_patients and not selected_patient %}
+<div class="card">
+  <div class="section-title">検索結果</div>
+  <table>
+    <tr><th>患者ID</th><th>氏名</th><th>区分</th><th>都道府県</th><th>電話</th><th>LINE登録</th><th>操作</th></tr>
+    {% for patient in matched_patients %}
+      <tr>
+        <td>{{ patient.patient_id }}</td>
+        <td>{{ patient.name }}</td>
+        <td>{{ patient.patient_type }}</td>
+        <td>{{ patient.prefecture }}</td>
+        <td>{{ patient.phone }}</td>
+        <td>{% if patient.line_user_id %}<span class="success">登録済</span>{% else %}<span class="muted">未登録</span>{% endif %}</td>
+        <td>
+          <form method="GET" action="/admin/patient_timeline">
+            <input type="hidden" name="active_institution_id" value="{{ current_institution_id }}">
+            <input type="hidden" name="q" value="{{ query }}">
+            <input type="hidden" name="patient_id" value="{{ patient.patient_id }}">
+            <button>やりとりを見る</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+{% elif query and not matched_patients %}
+<div class="card">
+  <div class="muted">該当する患者さんが見つかりませんでした。</div>
+</div>
+{% endif %}
+
+{% if selected_patient %}
+<div class="card">
+  <div class="section-title">患者情報</div>
+  <div class="patient-summary-grid">
+    <div><span class="muted">患者ID</span><strong>{{ selected_patient.patient_id }}</strong></div>
+    <div><span class="muted">氏名</span><strong>{{ selected_patient.name }}</strong></div>
+    <div><span class="muted">区分</span><strong>{{ selected_patient.patient_type or "-" }}</strong></div>
+    <div><span class="muted">都道府県</span><strong>{{ selected_patient.prefecture or "-" }}</strong></div>
+    <div><span class="muted">電話</span><strong>{{ selected_patient.phone or "-" }}</strong></div>
+    <div><span class="muted">LINE</span><strong>{% if selected_patient.line_user_id %}登録済{% else %}未登録{% endif %}</strong></div>
+  </div>
+  {% if selected_patient.notes %}
+    <div style="margin-top:12px;"><span class="muted">メモ</span><br>{{ selected_patient.notes }}</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="section-title">やりとりの時系列</div>
+  <div class="muted" style="margin-bottom:12px;">全 {{ timeline_count }} 件を古い順に表示しています。</div>
+  <div class="timeline-list">
+    {% for item in timeline_items %}
+      <div class="timeline-item {{ item.direction_class }}">
+        <div class="timeline-time">{{ item.timestamp }}</div>
+        <div class="timeline-body">
+          <div class="timeline-head">
+            <span class="timeline-badge">{{ item.direction }}</span>
+            <strong>{{ item.title }}</strong>
+            {% if item.kind %}<span class="muted">{{ item.kind }}</span>{% endif %}
+          </div>
+          {% if item.body %}
+            <div class="timeline-message">{{ item.body }}</div>
+          {% endif %}
+          {% if item.media_url %}
+            <div><a href="{{ item.media_url }}" target="_blank" rel="noopener">{% if item.body == 'LOCATION' %}地図を開く{% else %}画像を開く{% endif %}</a></div>
+          {% elif item.media_id %}
+            <div><a href="/admin/line/content/{{ item.media_id }}" target="_blank" rel="noopener">画像を開く</a></div>
+          {% endif %}
+          {% if item.map_url %}
+            <div><a href="{{ item.map_url }}" target="_blank" rel="noopener">位置情報を地図で開く</a></div>
+            <div class="muted">緯度 {{ item.latitude }} / 経度 {{ item.longitude }}</div>
+          {% endif %}
+          <div class="timeline-status">
+            {% if item.direction == "受信" %}
+              {% if item.handled %}<span class="success">対応済</span>{% else %}<span class="error">未対応</span>{% endif %}
+            {% else %}
+              {% if item.ok %}<span class="success">送信成功</span>{% else %}<span class="error">送信失敗</span>{% endif %}
+              {% if item.detail %}<span class="muted">{{ item.detail }}</span>{% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="muted">この患者さんのやりとりはまだ記録されていません。</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<style>
+.timeline-search-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  max-width: 760px;
+}
+
+.patient-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.patient-summary-grid div {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fafafa;
+}
+
+.patient-summary-grid span {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 12px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.timeline-time {
+  color: #555;
+  font-size: 13px;
+  padding-top: 6px;
+}
+
+.timeline-body {
+  border-left: 5px solid #ddd;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.timeline-item.incoming .timeline-body {
+  border-left-color: #188038;
+}
+
+.timeline-item.outgoing .timeline-body {
+  border-left-color: #2F6FE4;
+}
+
+.timeline-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.timeline-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #e8f0fe;
+  color: #1a56c5;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.incoming .timeline-badge {
+  background: #e6f4ea;
+  color: #188038;
+}
+
+.timeline-message {
+  margin-top: 8px;
+  white-space: pre-wrap;
+}
+
+.timeline-status {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .timeline-search-form,
+  .timeline-item,
+  .patient-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+{% endblock %}
