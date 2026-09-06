@@ -3,9 +3,15 @@ import os
 import shutil
 from datetime import datetime
 
+from core.passwords import migrate_plaintext_passwords
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SETTINGS_PATH = os.path.join(BASE_DIR, "settings.json")
 PERSISTENT_DATA_DIR = "/var/data"
+DEFAULT_ADMIN_PASSWORD_HASH = (
+    "scrypt:32768:8:1$uFoJAY97GGu18XzW$"
+    "4b0ce61693aeb01084ab934ea3a10c0b6db556cd7a6a3ca9290deafd5de652b893fa7bd1d832408c0aa72e75077b7f13175b64da83c58132bb389d488f8c6b85"
+)
 
 
 def _resolve_settings_path():
@@ -131,7 +137,8 @@ def _default_institution():
         "department": "未設定",
         "phone": "",
         "contact": {"name": "", "email": ""},
-        "password": "admin",
+        "password": "",
+        "password_hash": DEFAULT_ADMIN_PASSWORD_HASH,
         "line": {"channel_access_token": "", "bot_user_id": ""},
         "google": {
             "service_account_file": "./service_account.json",
@@ -210,6 +217,7 @@ def normalize_settings(data):
 
     for inst in data.get("institutions", {}).values():
         _merge_missing(inst, _default_institution())
+        inst.setdefault("password_hash", "")
         inst_messages = inst.setdefault("messages", {})
         if inst_messages.get("auto_reply_after_hours") in OLD_AFTER_HOURS_MESSAGES:
             inst_messages["auto_reply_after_hours"] = AFTER_HOURS_MESSAGE
@@ -235,11 +243,11 @@ def ensure_settings():
             with open(DEFAULT_SETTINGS_PATH, "r", encoding="utf-8") as src:
                 data = json.load(src)
             with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-                json.dump(normalize_settings(data), f, ensure_ascii=False, indent=2)
+                json.dump(migrate_plaintext_passwords(normalize_settings(data)), f, ensure_ascii=False, indent=2)
             return
 
         with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-            json.dump(get_default_settings(), f, ensure_ascii=False, indent=2)
+            json.dump(migrate_plaintext_passwords(get_default_settings()), f, ensure_ascii=False, indent=2)
 
 
 def load_settings():
@@ -250,7 +258,7 @@ def load_settings():
 
 
 def save_settings(data):
-    data = normalize_settings(data)
+    data = migrate_plaintext_passwords(normalize_settings(data))
     settings_dir = os.path.dirname(SETTINGS_PATH)
     if settings_dir:
         os.makedirs(settings_dir, exist_ok=True)

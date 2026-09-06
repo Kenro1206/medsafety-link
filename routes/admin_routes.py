@@ -6,6 +6,7 @@ from flask import Response, make_response, request, render_template, redirect, s
 from core.auth import require_login, require_system_admin
 from core.config_manager import SETTINGS_PATH, get_message_presets, get_settings_storage_status, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
+from core.passwords import set_institution_password, verify_institution_password
 from core.time_utils import format_jst_timestamp
 from core.utils import help_link
 from services.line_service import get_bot_info, get_message_content, push_safety_check, push_text
@@ -757,14 +758,14 @@ def register_admin_routes(app):
             new_password = request.form.get("new_password", "").strip()
             new_password_confirm = request.form.get("new_password_confirm", "").strip()
 
-            if current_password != inst.get("password", ""):
+            if not verify_institution_password(inst, current_password):
                 raise ValueError("現在のパスワードが違います。")
             if len(new_password) < 8:
                 raise ValueError("新しいパスワードは8文字以上にしてください。")
             if new_password != new_password_confirm:
                 raise ValueError("新しいパスワード確認が一致しません。")
 
-            inst["password"] = new_password
+            set_institution_password(inst, new_password)
             save_settings(s)
             s = load_settings()
             message = "ログインパスワードを変更しました。次回ログインから新しいパスワードを使用してください。"
@@ -888,8 +889,11 @@ def register_admin_routes(app):
             try:
                 if action == "create":
                     institution_id = request.form.get("institution_id", "").strip()
+                    initial_password = request.form.get("password", "").strip()
                     if not re.fullmatch(r"[A-Za-z0-9_-]{3,40}", institution_id or ""):
                         raise ValueError("施設IDは3〜40文字の半角英数字、ハイフン、アンダースコアで入力してください。")
+                    if len(initial_password) < 8:
+                        raise ValueError("初期パスワードは8文字以上にしてください。")
                     if institution_id in s.get("institutions", {}):
                         raise ValueError("この施設IDはすでに登録されています。")
 
@@ -902,13 +906,18 @@ def register_admin_routes(app):
                             "name": request.form.get("contact_name", "").strip(),
                             "email": request.form.get("contact_email", "").strip(),
                         },
-                        "password": request.form.get("password", "").strip() or "admin",
+                        "password": "",
+                        "password_hash": "",
                         "line": {"channel_access_token": "", "bot_user_id": ""},
                         "google": {"service_account_file": "./service_account.json", "spreadsheet_id": "", "drive_folder_id": ""},
                         "admins": {"line_user_ids": []},
                         "messages": copy.deepcopy(default_settings.get("messages", {})),
                         "safety_reply_options": copy.deepcopy(default_settings.get("safety_reply_options", []))
                     }
+                    set_institution_password(
+                        s["institutions"][institution_id],
+                        initial_password,
+                    )
                     message = f"施設「{institution_id}」を追加しました。設定する場合は「この施設を操作」を押してください。"
 
                 elif action == "update":
@@ -922,7 +931,9 @@ def register_admin_routes(app):
                     inst.setdefault("contact", {})["email"] = request.form.get("contact_email", "").strip()
                     password = request.form.get("password", "").strip()
                     if password:
-                        inst["password"] = password
+                        if len(password) < 8:
+                            raise ValueError("新しいパスワードは8文字以上にしてください。")
+                        set_institution_password(inst, password)
                     message = "施設情報を更新しました。"
 
                 elif action == "delete":

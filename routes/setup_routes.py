@@ -2,6 +2,7 @@ import os
 from flask import request, render_template
 
 from core.config_manager import SETTINGS_PATH, load_settings, save_settings
+from core.passwords import set_institution_password
 from services.line_service import test_line_connection, push_text
 from services.sheets_service import (
     ensure_spreadsheet_schema,
@@ -39,11 +40,13 @@ def register_setup_routes(app):
                     raise ValueError("診療科を入力してください。")
                 if not admin_password:
                     raise ValueError("管理者パスワードを入力してください。")
+                if len(admin_password) < 8:
+                    raise ValueError("管理者パスワードは8文字以上にしてください。")
 
                 institution["name"] = hospital_name
                 institution["department"] = department
                 institution["phone"] = request.form.get("hospital_phone", "").strip()
-                institution["password"] = admin_password
+                set_institution_password(institution, admin_password)
                 institution["line"]["channel_access_token"] = line_token
                 institution["google"]["spreadsheet_id"] = spreadsheet_id
 

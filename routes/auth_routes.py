@@ -4,6 +4,11 @@ import re
 from flask import make_response, request, session, redirect, render_template
 from core.config_manager import load_settings, save_settings
 from core.auth import FACILITY_MANAGER_LOGIN_ID, is_system_admin_institution
+from core.passwords import (
+    set_institution_password,
+    upgrade_institution_password_if_needed,
+    verify_institution_password,
+)
 
 
 def register_auth_routes(app):
@@ -50,9 +55,11 @@ def register_auth_routes(app):
 
             if not institution:
                 message = "施設IDが見つかりません。"
-            elif password != institution.get("password", ""):
+            elif not verify_institution_password(institution, password):
                 message = "パスワードが違います。"
             else:
+                if upgrade_institution_password_if_needed(institution, password):
+                    save_settings(s)
                 start_session(institution_id)
                 if is_system_admin_institution(institution_id):
                     operated_id = request.cookies.get("last_operated_institution_id", "").strip()
@@ -85,6 +92,8 @@ def register_auth_routes(app):
                     raise ValueError("施設名を入力してください。")
                 if not password:
                     raise ValueError("パスワードを入力してください。")
+                if len(password) < 8:
+                    raise ValueError("パスワードは8文字以上にしてください。")
                 if password != password_confirm:
                     raise ValueError("確認用パスワードが一致しません。")
 
@@ -97,13 +106,15 @@ def register_auth_routes(app):
                     "department": department,
                     "phone": "",
                     "contact": {"name": "", "email": ""},
-                    "password": password,
+                    "password": "",
+                    "password_hash": "",
                     "line": {"channel_access_token": "", "bot_user_id": ""},
                     "google": {"service_account_file": "./service_account.json", "spreadsheet_id": "", "drive_folder_id": ""},
                     "admins": {"line_user_ids": []},
                     "messages": copy.deepcopy(settings.get("messages", {})),
                     "safety_reply_options": copy.deepcopy(settings.get("safety_reply_options", [])),
                 }
+                set_institution_password(settings["institutions"][institution_id], password)
                 save_settings(settings)
                 start_session(institution_id)
                 response = make_response(redirect(f"/admin/settings?active_institution_id={institution_id}"))

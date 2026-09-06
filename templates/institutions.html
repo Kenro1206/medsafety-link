@@ -17,7 +17,7 @@
     <div><label>診療科</label><br><input name="department"><div class="muted">担当部署名です。</div></div>
     <div><label>担当者</label><br><input name="contact_name"><div class="muted">パスワード再設定時の連絡先です。</div></div>
     <div><label>担当者メール</label><br><input type="email" name="contact_email"><div class="muted">連絡可能なメールアドレスです。</div></div>
-    <div><label>初期パスワード</label><br><input name="password" type="text" required><div class="muted">追加後、施設設定から変更できます。</div></div>
+    <div><label>初期パスワード</label><br><input name="password" type="password" autocomplete="new-password" required><div class="muted">8文字以上。追加後、施設設定から変更できます。</div></div>
     <button type="submit">追加</button>
   </form>
 </div>
@@ -26,7 +26,7 @@
   <div class="section-title">登録済み施設</div>
   <div class="muted" style="margin-bottom:14px;">
     「この施設を操作」を押すと、その施設の設定画面・患者一覧・送信機能を操作対象に切り替えます。
-    パスワード欄は空欄のまま更新すると変更されません。
+    パスワード欄は空欄のまま更新すると変更されません。入力した場合は8文字以上が必要です。
     削除は取り消せません。現在操作中の施設と最後の1施設は削除できません。
   </div>
   <table class="institutions-table">
@@ -43,7 +43,7 @@
         <td><input name="department" value="{{ inst.department }}"></td>
         <td><input name="contact_name" value="{{ inst.contact.name if inst.contact is defined else '' }}"></td>
         <td><input type="email" name="contact_email" value="{{ inst.contact.email if inst.contact is defined else '' }}"></td>
-        <td><input name="password" placeholder="空欄なら変更しない"></td>
+        <td><input name="password" type="password" autocomplete="new-password" placeholder="空欄なら変更しない"></td>
         <td style="min-width:160px;">
             <button type="submit">更新</button>
           </form>

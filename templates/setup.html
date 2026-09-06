@@ -33,7 +33,7 @@
     <div class="section-title">管理者設定</div>
     <div class="form-row">
       <label for="admin_password">管理者パスワード</label><br>
-      <input id="admin_password" type="text" name="admin_password" value="{{ institution.password }}" required>
+      <input id="admin_password" type="password" name="admin_password" autocomplete="new-password" required>
       <div class="muted">
         管理画面にログインするためのパスワードです。
         実働時は初期値のままにせず、8文字以上の推測されにくい文字列に変更してください。

@@ -3,7 +3,8 @@
     "kumamoto_chuo": {
       "name": "熊本中央病院",
       "department": "糖尿病・内分泌・代謝内科",
-      "password": "admin",
+      "password": "",
+      "password_hash": "scrypt:32768:8:1$uFoJAY97GGu18XzW$4b0ce61693aeb01084ab934ea3a10c0b6db556cd7a6a3ca9290deafd5de652b893fa7bd1d832408c0aa72e75077b7f13175b64da83c58132bb389d488f8c6b85",
       "line": {
         "channel_access_token": ""
       },
@@ -19,7 +20,8 @@
     "sample_clinic": {
       "name": "サンプルクリニック",
       "department": "内科",
-      "password": "admin",
+      "password": "",
+      "password_hash": "scrypt:32768:8:1$kWdODs8mprZ2ncL5$850d625a61b3658b5f39f85a53f4021f68b0ff18fd7e28e9962f356edbe00dafb86d4be7fa05909b2804587532a4de31d9d8ae91abd5dd60f633824418921be3",
       "line": {
         "channel_access_token": ""
       },
@@ -36,7 +38,8 @@
       "name": "未設定",
       "department": "未設定",
       "phone": "",
-      "password": "admin",
+      "password": "",
+      "password_hash": "scrypt:32768:8:1$sTE5TEWaqDWcpC6D$e69050ea93681eb7b2951825bf98702e444bfcb805571e9980df21c2990db95e30721e4c7c0cb9cd4a41717caaddb5f0d3e08ecca4247eceb59dabbb0ef29ddf",
       "line": {
         "channel_access_token": ""
       },
