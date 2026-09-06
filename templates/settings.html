@@ -101,7 +101,7 @@
 
     <div class="form-row">
       <label>チャネルアクセストークン</label><br>
-      <input name="line_token" value="{{ institution.line.channel_access_token }}">
+      <input name="line_token" type="password" autocomplete="new-password" placeholder="{% if institution.line.channel_access_token %}設定済み。変更する場合だけ新しいトークンを入力{% else %}未設定{% endif %}">
       <div class="muted">
         LINE公式アカウントから患者・管理者へメッセージを送信するための認証キーです。
         LINE Developers の対象チャネル → Messaging API → チャネルアクセストークンで取得します。
@@ -109,6 +109,10 @@
           <br><span class="success">この施設にはLINEチャネルアクセストークンが保存されています。</span>
         {% else %}
           <br><span class="error">この施設のLINEチャネルアクセストークンは未設定です。</span>
+        {% endif %}
+        <br>空欄のまま保存すると、現在のトークンを保持します。
+        {% if institution.line.channel_access_token %}
+          <br><label style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;"><input type="checkbox" name="clear_line_token" value="on" style="width:auto;">保存済みトークンを削除する</label>
         {% endif %}
       </div>
     </div>
@@ -273,7 +277,7 @@
       <div class="muted">
         Google CloudからダウンロードしたJSONキーを選択してください。
         保存後、この下の共有先メールアドレスがJSONの <code>client_email</code> に更新されます。<br>
-        現在の保存先: {{ institution.google.service_account_file }}
+        現在の状態: {% if service_account_email %}<span class="success">設定済み</span>{% else %}<span class="error">未設定</span>{% endif %}<br>
         共有先メールアドレスを変更したい場合は、新しいサービスアカウントJSONをここで選択して保存してください。
       </div>
     </div>

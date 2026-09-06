@@ -40,8 +40,31 @@ def register_admin_routes(app):
         try:
             return func()
         except Exception as e:
-            print("[ERROR]", e)
+            print(f"[ERROR] {func.__name__} failed: {type(e).__name__}")
             return default
+
+    def mask_identifier(value, visible=4):
+        value = str(value or "").strip()
+        if not value:
+            return ""
+        if len(value) <= visible:
+            return "*" * len(value)
+        return f"{value[:2]}{'*' * max(len(value) - visible - 2, 4)}{value[-visible:]}"
+
+    def secret_status(value):
+        return "設定済み" if str(value or "").strip() else "未設定"
+
+    def safe_error_message(error):
+        text = str(error)
+        token_patterns = [
+            r"Bearer\s+[A-Za-z0-9._\\-]+",
+            r"\"private_key\"\\s*:\\s*\"[^\"]+\"",
+            r"\"client_email\"\\s*:\\s*\"[^\"]+\"",
+            r"\"private_key_id\"\\s*:\\s*\"[^\"]+\"",
+        ]
+        for pattern in token_patterns:
+            text = re.sub(pattern, "[秘匿]", text)
+        return text
 
     def active_admin_path(path):
         return f"{path}?active_institution_id={get_current_institution_id()}"
@@ -349,7 +372,7 @@ def register_admin_routes(app):
         try:
             append_sent_message(patient, "紐付け完了通知", text, ok, detail)
         except Exception as e:
-            detail = f"{detail} / 送信履歴保存失敗: {e}"
+            detail = f"{detail} / 送信履歴保存失敗: {safe_error_message(e)}"
         return ok, detail
 
     @app.route("/admin/dashboard")
@@ -521,9 +544,8 @@ def register_admin_routes(app):
                 f"スプレッドシートID: {spreadsheet_id}",
                 f"サービスアカウント: {email if email else '未取得'}",
                 f"認証JSONの使用元: {summary.get('source', '未取得')}",
-                f"認証JSONの保存先: {summary.get('source_path', '') or '環境変数または未設定'}",
                 f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
-                f"秘密鍵ID: {summary.get('private_key_id', '未取得') or '未取得'}",
+                f"認証JSON: {summary.get('source', '') if summary.get('client_email') else '未設定'}",
                 f"取得できたシート: {', '.join(titles) if titles else 'なし'}",
             ]
             if missing:
@@ -553,11 +575,9 @@ def register_admin_routes(app):
                 f"スプレッドシートID: {spreadsheet_id or '未設定'}",
                 f"設定中のスプレッドシートURL: {spreadsheet_url}",
                 f"認証JSONの使用元: {summary.get('source', '未取得')}",
-                f"認証JSONの保存先: {summary.get('source_path', '') or '環境変数または未設定'}",
                 f"サービスアカウント: {summary.get('client_email', '未取得') or '未取得'}",
                 f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
-                f"秘密鍵ID: {summary.get('private_key_id', '未取得') or '未取得'}",
-                f"Google Sheetsを読み込めませんでした: {e}",
+                f"Google Sheetsを読み込めませんでした: {safe_error_message(e)}",
             ]
             return render_template(
                 "setup_result.html",
@@ -592,7 +612,7 @@ def register_admin_routes(app):
                 "setup_result.html",
                 title="Googleシート初期化",
                 success=False,
-                result_text=f"Googleシート初期化中にエラーが発生しました: {e}",
+                result_text=f"Googleシート初期化中にエラーが発生しました: {safe_error_message(e)}",
                 back_url="/admin/settings",
                 settings=load_settings(),
             )
@@ -635,7 +655,7 @@ def register_admin_routes(app):
                 f"画像保存先フォルダID: {folder_id or '未設定'}",
                 f"サービスアカウント: {summary.get('client_email', '未取得') or '未取得'}",
                 f"Google Cloudプロジェクト: {summary.get('project_id', '未取得') or '未取得'}",
-                f"Google Driveへ接続できませんでした: {e}",
+                f"Google Driveへ接続できませんでした: {safe_error_message(e)}",
                 "Google Drive APIが有効か、DriveフォルダIDが正しいか、フォルダをサービスアカウントへ編集者共有しているか確認してください。",
             ]
             return render_template(
@@ -668,11 +688,18 @@ def register_admin_routes(app):
                 inst["message_profile"] = message_profile
             old_line_token = inst["line"].get("channel_access_token", "").strip()
             new_line_token = request.form.get("line_token", "").strip()
+            clear_line_token = request.form.get("clear_line_token") == "on"
             manual_bot_user_id = request.form.get("line_bot_user_id", "").strip()
-            inst["line"]["channel_access_token"] = new_line_token
-            if manual_bot_user_id:
+            if clear_line_token:
+                inst["line"]["channel_access_token"] = ""
+                inst["line"]["bot_user_id"] = ""
+            elif new_line_token:
+                inst["line"]["channel_access_token"] = new_line_token
+            if clear_line_token:
+                pass
+            elif manual_bot_user_id:
                 inst["line"]["bot_user_id"] = manual_bot_user_id
-            elif new_line_token != old_line_token:
+            elif (clear_line_token or (new_line_token and new_line_token != old_line_token)):
                 inst["line"]["bot_user_id"] = ""
             global_messages = s.get("messages", {})
             inst_messages = inst.setdefault("messages", {})
@@ -727,7 +754,7 @@ def register_admin_routes(app):
             error_message = ""
         except Exception as e:
             message = ""
-            error_message = f"保存エラー: {e}"
+            error_message = f"保存エラー: {safe_error_message(e)}"
 
         return render_template(
             "settings.html",
@@ -770,7 +797,7 @@ def register_admin_routes(app):
             s = load_settings()
             message = "ログインパスワードを変更しました。次回ログインから新しいパスワードを使用してください。"
         except Exception as e:
-            error_message = f"パスワード変更エラー: {e}"
+            error_message = f"パスワード変更エラー: {safe_error_message(e)}"
 
         return render_template(
             "settings.html",
@@ -830,7 +857,7 @@ def register_admin_routes(app):
                     "LINE接続診断に失敗しました。\n"
                     f"施設ID: {institution_id}\n"
                     f"チャネルアクセストークン: {'設定済み' if token_set else '未設定'}\n"
-                    f"エラー: {e}\n"
+                    f"エラー: {safe_error_message(e)}\n"
                     "設定画面で、この施設用のLINEチャネルアクセストークンを入力して保存してください。"
                 ),
                 back_url="/admin/settings",
@@ -855,8 +882,8 @@ def register_admin_routes(app):
                 f"時刻: {row.get('timestamp', '')}",
                 f"destination: {row.get('destination', '')}",
                 f"イベント: {row.get('event_type', '')}/{row.get('message_type', '')}",
-                f"LINE user_id: {row.get('line_user_id', '')}",
-                f"本文: {row.get('text', '')}",
+                f"LINE user_id: {mask_identifier(row.get('line_user_id', ''))}",
+                f"本文: {row.get('text', '')[:80]}",
                 f"destination判定施設: {row.get('destination_institution_id', '') or '未判定'}",
                 f"保存先/一致施設: {row.get('matched_institution_id', '') or '未判定'}",
                 f"患者ID: {row.get('patient_id', '') or '未登録'}",
@@ -1051,9 +1078,9 @@ def register_admin_routes(app):
                     if ok:
                         message += " LINEへ紐付け完了メッセージを送信しました。"
                     else:
-                        message += f" ただし、LINE通知は送信できませんでした: {detail}"
+                        message += f" ただし、LINE通知は送信できませんでした: {safe_error_message(detail)}"
             except Exception as e:
-                error_message = f"保存エラー: {e}"
+                error_message = f"保存エラー: {safe_error_message(e)}"
 
         patients = safe_call(load_patients, [])
         pending_users = with_jst_timestamps(safe_call(lambda: remove_linked_pending_users(patients=patients), []))

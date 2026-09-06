@@ -1,4 +1,5 @@
 import os
+import re
 from flask import request, render_template
 
 from core.config_manager import SETTINGS_PATH, load_settings, save_settings
@@ -13,6 +14,18 @@ from services.sheets_service import (
 
 
 def register_setup_routes(app):
+
+    def safe_error_message(error):
+        text = str(error)
+        token_patterns = [
+            r"Bearer\s+[A-Za-z0-9._\\-]+",
+            r"\"private_key\"\\s*:\\s*\"[^\"]+\"",
+            r"\"client_email\"\\s*:\\s*\"[^\"]+\"",
+            r"\"private_key_id\"\\s*:\\s*\"[^\"]+\"",
+        ]
+        for pattern in token_patterns:
+            text = re.sub(pattern, "[秘匿]", text)
+        return text
 
     def get_setup_context():
         s = load_settings()
@@ -47,7 +60,8 @@ def register_setup_routes(app):
                 institution["department"] = department
                 institution["phone"] = request.form.get("hospital_phone", "").strip()
                 set_institution_password(institution, admin_password)
-                institution["line"]["channel_access_token"] = line_token
+                if line_token:
+                    institution["line"]["channel_access_token"] = line_token
                 institution["google"]["spreadsheet_id"] = spreadsheet_id
 
                 selected_candidate = request.form.get("admin_id_candidate", "").strip()
@@ -71,7 +85,7 @@ def register_setup_routes(app):
                 message = "設定を保存しました。"
                 s, institution_id, institution = get_setup_context()
             except Exception as e:
-                error_message = f"保存エラー: {e}"
+                error_message = f"保存エラー: {safe_error_message(e)}"
 
         return render_template(
             "setup.html",
@@ -91,7 +105,7 @@ def register_setup_routes(app):
             ok, result = test_line_connection()
             return render_template("setup_result.html", title="LINE接続テスト", success=ok, result_text=str(result), back_url="/setup", settings=s)
         except Exception as e:
-            return render_template("setup_result.html", title="LINE接続テスト", success=False, result_text=f"例外発生: {e}", back_url="/setup", settings=s)
+            return render_template("setup_result.html", title="LINE接続テスト", success=False, result_text=f"例外発生: {safe_error_message(e)}", back_url="/setup", settings=s)
 
     @app.route("/setup/test_line_to/<path:target_id>")
     def setup_test_line_to(target_id):
@@ -102,7 +116,7 @@ def register_setup_routes(app):
             ok, result = push_text(target_id, "【MedSafety Link テスト】このLINE IDは管理者候補として認識されています。")
             return render_template("setup_result.html", title="候補LINE IDテスト送信", success=ok, result_text=str(result), back_url="/setup", settings=s)
         except Exception as e:
-            return render_template("setup_result.html", title="候補LINE IDテスト送信", success=False, result_text=f"例外発生: {e}", back_url="/setup", settings=s)
+            return render_template("setup_result.html", title="候補LINE IDテスト送信", success=False, result_text=f"例外発生: {safe_error_message(e)}", back_url="/setup", settings=s)
 
 
     @app.route("/setup/init_google")
@@ -115,7 +129,7 @@ def register_setup_routes(app):
                 detail += " 初期化/更新: " + ", ".join(initialized)
             return render_template("setup_result.html", title="Googleシート初期化", success=True, result_text=detail, back_url="/setup", settings=s)
         except Exception as e:
-            return render_template("setup_result.html", title="Googleシート初期化", success=False, result_text=f"Googleシート初期化中にエラーが発生しました: {e}", back_url="/setup", settings=s)
+            return render_template("setup_result.html", title="Googleシート初期化", success=False, result_text=f"Googleシート初期化中にエラーが発生しました: {safe_error_message(e)}", back_url="/setup", settings=s)
 
     @app.route("/setup/test_google")
     def setup_test_google():
@@ -124,7 +138,7 @@ def register_setup_routes(app):
             mode = get_system_mode()
             return render_template("setup_result.html", title="Google接続テスト", success=True, result_text=f"Google接続成功。system_mode の現在値: {mode}", back_url="/setup", settings=s)
         except Exception as e:
-            return render_template("setup_result.html", title="Google接続テスト", success=False, result_text=f"Google接続テスト中にエラーが発生しました: {e}", back_url="/setup", settings=s)
+            return render_template("setup_result.html", title="Google接続テスト", success=False, result_text=f"Google接続テスト中にエラーが発生しました: {safe_error_message(e)}", back_url="/setup", settings=s)
 
     def safe_get_service_account_email():
         try:

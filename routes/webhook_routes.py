@@ -24,6 +24,19 @@ ANSWER_MAP = {
 DEFAULT_ANSWER_CODES = ["SAFE", "SICK", "INSULIN_OUT", "HYPO", "CALL"]
 
 
+def mask_identifier(value, visible=4):
+    value = str(value or "").strip()
+    if not value:
+        return ""
+    if len(value) <= visible:
+        return "*" * len(value)
+    return f"{value[:2]}{'*' * max(len(value) - visible - 2, 4)}{value[-visible:]}"
+
+
+def safe_error_message(error):
+    return str(type(error).__name__)
+
+
 def get_configured_answer_map():
     settings = load_settings()
     institution = settings.get("institutions", {}).get(get_current_institution_id(), {})
@@ -93,7 +106,7 @@ def find_patient_by_line_user_id(user_id):
                 if patient:
                     return institution_id, patient
         except Exception as e:
-            print(f"[WEBHOOK INSTITUTION SKIP] {institution_id}: {e}")
+            print(f"[WEBHOOK INSTITUTION SKIP] {institution_id}: {type(e).__name__}")
     return None, None
 
 
@@ -156,7 +169,7 @@ def register_webhook_routes(app):
                 "destination": body.get("destination", ""),
                 "event_type": event.get("type", ""),
                 "message_type": event.get("message", {}).get("type", ""),
-                "line_user_id": event.get("source", {}).get("userId", ""),
+                "line_user_id": mask_identifier(event.get("source", {}).get("userId", "")),
                 "text": "",
                 "message_id": event.get("message", {}).get("id", ""),
                 "destination_institution_id": "",
@@ -272,8 +285,8 @@ def register_webhook_routes(app):
                         status["reply_result"] = f"{ok}: {result}"
                 record_webhook_status(status)
             except Exception as e:
-                status["error"] = str(e)
+                status["error"] = safe_error_message(e)
                 record_webhook_status(status)
-                print("[WEBHOOK ERROR]", e)
+                print(f"[WEBHOOK ERROR] {type(e).__name__}")
 
         return "OK", 200

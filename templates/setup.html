@@ -63,11 +63,12 @@
     <div class="section-title">LINE設定</div>
     <div class="form-row">
       <label for="line_token">チャネルアクセストークン</label><br>
-      <input id="line_token" type="text" name="line_token" value="{{ institution.line.channel_access_token }}">
+      <input id="line_token" type="password" name="line_token" autocomplete="new-password" placeholder="{% if institution.line.channel_access_token %}設定済み。変更する場合だけ新しいトークンを入力{% else %}未設定{% endif %}">
       <div class="muted">
         LINE公式アカウントがメッセージを送るための認証キーです。
         LINE Developers → 対象チャネル → Messaging API → チャネルアクセストークンから取得します。
         長期アクセストークンの利用を推奨します。
+        空欄のまま保存すると、現在のトークンを保持します。
       </div>
     </div>
 
@@ -89,7 +90,7 @@
       <div class="muted">
         Google Sheetsへアクセスするための認証ファイルです。
         Google Cloudでサービスアカウントを作成し、JSONキーをダウンロードしてアップロードします。<br>
-        現在: {{ institution.google.service_account_file }}
+        現在の状態: {% if service_account_email %}<span class="success">設定済み</span>{% else %}<span class="error">未設定</span>{% endif %}
       </div>
     </div>
     <div class="form-row">

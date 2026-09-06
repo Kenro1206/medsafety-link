@@ -24,7 +24,7 @@ def inject_permissions():
         try:
             current_mode = get_system_mode()
         except Exception as e:
-            print("[MODE STATUS ERROR]", e)
+            print(f"[MODE STATUS ERROR] {type(e).__name__}")
             current_mode = "取得不可"
 
     return {
