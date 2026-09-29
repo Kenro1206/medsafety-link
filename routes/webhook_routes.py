@@ -2,9 +2,15 @@ from flask import request
 
 from core.institution_context import get_all_institutions, get_current_institution_id, use_institution
 from core.config_manager import load_settings, save_settings
-from core.time_utils import is_business_time, now_jst_iso
+from core.time_utils import (
+    is_business_time,
+    line_event_timestamp_to_jst_iso,
+    now_jst_iso,
+    timestamp_delay_seconds,
+)
 from services.line_service import get_message_content, get_severe_codes, notify_admin, reply_text
 from services.sheets_service import append_response, load_patients, load_pending_users, save_pending_users, get_system_mode, upload_drive_file
+from services.webhook_queue import enqueue_events, queue_status_counts, start_worker
 
 ANSWER_MAP = {
     "1": ("SAFE", "無事"),
@@ -159,134 +165,162 @@ def get_location_detail(event):
 
 
 def register_webhook_routes(app):
+    def process_event(destination, event, received_timestamp):
+        event_timestamp = line_event_timestamp_to_jst_iso(event.get("timestamp"))
+        delay_seconds = timestamp_delay_seconds(event_timestamp, received_timestamp)
+        webhook_event_id = str(event.get("webhookEventId", "")).strip()
+        is_redelivery = bool(event.get("deliveryContext", {}).get("isRedelivery", False))
+        status = {
+            "timestamp": received_timestamp,
+            "event_timestamp": event_timestamp,
+            "received_timestamp": received_timestamp,
+            "delay_seconds": delay_seconds,
+            "webhook_event_id": webhook_event_id,
+            "is_redelivery": is_redelivery,
+            "destination": destination,
+            "event_type": event.get("type", ""),
+            "message_type": event.get("message", {}).get("type", ""),
+            "line_user_id": mask_identifier(event.get("source", {}).get("userId", "")),
+            "text": "",
+            "message_id": event.get("message", {}).get("id", ""),
+            "destination_institution_id": "",
+            "matched_institution_id": "",
+            "patient_id": "",
+            "action": "",
+            "reply_result": "",
+            "error": "",
+        }
+        try:
+            message_type = event.get("message", {}).get("type", "")
+            message_id = event.get("message", {}).get("id", "")
+            text = get_event_text(event)
+            if message_type == "image":
+                text = "画像メッセージ"
+            elif message_type == "location":
+                text = get_location_detail(event)[0]
+            status["text"] = text[:80] if text else ""
+            if not text:
+                status["action"] = "ignored_non_text_event"
+                record_webhook_status(status)
+                return
+
+            user_id = event.get("source", {}).get("userId", "")
+            reply_token = event.get("replyToken")
+            destination_institution_id = find_institution_by_destination(destination)
+            institution_id, patient = find_patient_by_line_user_id(user_id)
+            status["destination_institution_id"] = destination_institution_id or ""
+            status["matched_institution_id"] = institution_id or ""
+
+            if not patient:
+                target_institution_id = destination_institution_id or get_current_institution_id()
+                status["matched_institution_id"] = target_institution_id or ""
+                with use_institution(target_institution_id):
+                    pending = load_pending_users()
+                    if not any(r.get("line_user_id") == user_id for r in pending):
+                        pending.append({
+                            "timestamp": event_timestamp,
+                            "line_user_id": user_id,
+                            "patient_name": "",
+                            "display_text": (
+                                "画像メッセージを受信しました" if message_type == "image"
+                                else "位置情報を受信しました" if message_type == "location"
+                                else text
+                            )
+                        })
+                        save_pending_users(pending)
+                        status["action"] = "saved_pending_user"
+                    else:
+                        status["action"] = "pending_user_already_exists"
+
+                    s = load_settings()
+                    candidates = s.setdefault("setup", {}).setdefault("candidate_admin_line_ids", [])
+                    if user_id and user_id not in candidates:
+                        candidates.append(user_id)
+                        save_settings(s)
+
+                    if reply_token:
+                        ok, result = reply_text(reply_token, "メッセージを受け付けました。管理者が登録確認を行います。")
+                        status["reply_result"] = f"{ok}: {result}"
+                record_webhook_status(status)
+                return
+
+            with use_institution(institution_id):
+                status["patient_id"] = patient.get("patient_id", "")
+                mode = get_system_mode()
+                response_kwargs = {
+                    "event_timestamp": event_timestamp,
+                    "received_timestamp": received_timestamp,
+                    "webhook_event_id": webhook_event_id,
+                    "is_redelivery": is_redelivery,
+                    "delay_seconds": delay_seconds,
+                }
+                if message_type == "image":
+                    code, label = "PHOTO", "画像を受信しました"
+                    media_url = ""
+                    ok_content, content, mime_type = get_message_content(message_id)
+                    if ok_content:
+                        extension = "jpg" if "jpeg" in mime_type else "png" if "png" in mime_type else "bin"
+                        filename = f"{patient.get('patient_id', 'patient')}_{event_timestamp.replace(':', '').replace('+', '_')}.{extension}"
+                        try:
+                            media_url = upload_drive_file(content, filename, mime_type)
+                            if not media_url:
+                                status["error"] = "画像保存先Google DriveフォルダIDが未設定のため、Drive保存は行いませんでした。"
+                        except Exception as upload_error:
+                            status["error"] = f"Google Drive画像保存失敗: {type(upload_error).__name__}"
+                    else:
+                        status["error"] = str(type(content).__name__)
+                    appended = append_response(
+                        patient, user_id, mode, code, label,
+                        media_id=message_id, media_url=media_url, **response_kwargs
+                    )
+                elif message_type == "location":
+                    code = "LOCATION"
+                    label, map_url, latitude, longitude = get_location_detail(event)
+                    appended = append_response(
+                        patient,
+                        user_id,
+                        mode,
+                        code,
+                        label,
+                        media_url=map_url,
+                        latitude=latitude,
+                        longitude=longitude,
+                        **response_kwargs,
+                    )
+                else:
+                    code, label = classify_answer(text)
+                    appended = append_response(patient, user_id, mode, code, label, **response_kwargs)
+                status["action"] = f"saved_response:{code}" if appended else f"duplicate_response:{code}"
+
+                if appended and code in get_severe_codes():
+                    notify_admin(patient, code, label)
+
+                if reply_token and appended:
+                    reply_message = (
+                        "画像を受け付けました。担当者が確認します。"
+                        if message_type == "image"
+                        else "位置情報を受け付けました。担当者が確認します。"
+                        if message_type == "location"
+                        else patient_auto_reply_text(mode, label)
+                    )
+                    ok, result = reply_text(reply_token, reply_message)
+                    status["reply_result"] = f"{ok}: {result}"
+            record_webhook_status(status)
+        except Exception as error:
+            status["error"] = safe_error_message(error)
+            record_webhook_status(status)
+            print(f"[WEBHOOK ERROR] {type(error).__name__}")
+            raise
+
     @app.route("/callback", methods=["POST"])
     def callback():
         body = request.get_json(force=True, silent=True) or {}
-
-        for event in body.get("events", []):
-            status = {
-                "timestamp": now_jst_iso(),
-                "destination": body.get("destination", ""),
-                "event_type": event.get("type", ""),
-                "message_type": event.get("message", {}).get("type", ""),
-                "line_user_id": mask_identifier(event.get("source", {}).get("userId", "")),
-                "text": "",
-                "message_id": event.get("message", {}).get("id", ""),
-                "destination_institution_id": "",
-                "matched_institution_id": "",
-                "patient_id": "",
-                "action": "",
-                "reply_result": "",
-                "error": "",
-            }
-            try:
-                message_type = event.get("message", {}).get("type", "")
-                message_id = event.get("message", {}).get("id", "")
-                text = get_event_text(event)
-                if message_type == "image":
-                    text = "画像メッセージ"
-                elif message_type == "location":
-                    text = get_location_detail(event)[0]
-                status["text"] = text[:80] if text else ""
-                if not text:
-                    status["action"] = "ignored_non_text_event"
-                    record_webhook_status(status)
-                    continue
-
-                user_id = event.get("source", {}).get("userId", "")
-                reply_token = event.get("replyToken")
-                destination_institution_id = find_institution_by_destination(body.get("destination", ""))
-                institution_id, patient = find_patient_by_line_user_id(user_id)
-                status["destination_institution_id"] = destination_institution_id or ""
-                status["matched_institution_id"] = institution_id or ""
-
-                if not patient:
-                    target_institution_id = destination_institution_id or get_current_institution_id()
-                    status["matched_institution_id"] = target_institution_id or ""
-                    with use_institution(target_institution_id):
-                        pending = load_pending_users()
-                        if not any(r.get("line_user_id") == user_id for r in pending):
-                            pending.append({
-                                "timestamp": now_jst_iso(),
-                                "line_user_id": user_id,
-                                "patient_name": "",
-                                "display_text": (
-                                    "画像メッセージを受信しました" if message_type == "image"
-                                    else "位置情報を受信しました" if message_type == "location"
-                                    else text
-                                )
-                            })
-                            save_pending_users(pending)
-                            status["action"] = "saved_pending_user"
-                        else:
-                            status["action"] = "pending_user_already_exists"
-
-                        s = load_settings()
-                        candidates = s.setdefault("setup", {}).setdefault("candidate_admin_line_ids", [])
-                        if user_id and user_id not in candidates:
-                            candidates.append(user_id)
-                            save_settings(s)
-
-                        if reply_token:
-                            ok, result = reply_text(reply_token, "メッセージを受け付けました。管理者が登録確認を行います。")
-                            status["reply_result"] = f"{ok}: {result}"
-                    record_webhook_status(status)
-                    continue
-
-                with use_institution(institution_id):
-                    status["patient_id"] = patient.get("patient_id", "")
-                    mode = get_system_mode()
-                    if message_type == "image":
-                        code, label = "PHOTO", "画像を受信しました"
-                        media_url = ""
-                        ok_content, content, mime_type = get_message_content(message_id)
-                        if ok_content:
-                            extension = "jpg" if "jpeg" in mime_type else "png" if "png" in mime_type else "bin"
-                            filename = f"{patient.get('patient_id', 'patient')}_{now_jst_iso().replace(':', '').replace('+', '_')}.{extension}"
-                            try:
-                                media_url = upload_drive_file(content, filename, mime_type)
-                                if not media_url:
-                                    status["error"] = "画像保存先Google DriveフォルダIDが未設定のため、Drive保存は行いませんでした。"
-                            except Exception as upload_error:
-                                status["error"] = f"Google Drive画像保存失敗: {upload_error}"
-                        else:
-                            status["error"] = str(content)
-                        append_response(patient, user_id, mode, code, label, media_id=message_id, media_url=media_url)
-                    elif message_type == "location":
-                        code = "LOCATION"
-                        label, map_url, latitude, longitude = get_location_detail(event)
-                        append_response(
-                            patient,
-                            user_id,
-                            mode,
-                            code,
-                            label,
-                            media_url=map_url,
-                            latitude=latitude,
-                            longitude=longitude,
-                        )
-                    else:
-                        code, label = classify_answer(text)
-                        append_response(patient, user_id, mode, code, label)
-                    status["action"] = f"saved_response:{code}"
-
-                    if code in get_severe_codes():
-                        notify_admin(patient, code, label)
-
-                    if reply_token:
-                        reply_message = (
-                            "画像を受け付けました。担当者が確認します。"
-                            if message_type == "image"
-                            else "位置情報を受け付けました。担当者が確認します。"
-                            if message_type == "location"
-                            else patient_auto_reply_text(mode, label)
-                        )
-                        ok, result = reply_text(reply_token, reply_message)
-                        status["reply_result"] = f"{ok}: {result}"
-                record_webhook_status(status)
-            except Exception as e:
-                status["error"] = safe_error_message(e)
-                record_webhook_status(status)
-                print(f"[WEBHOOK ERROR] {type(e).__name__}")
-
+        try:
+            enqueue_events(body)
+        except Exception as error:
+            print(f"[WEBHOOK QUEUE ERROR] {type(error).__name__}")
+            return "QUEUE_ERROR", 500
         return "OK", 200
+
+    app.extensions["webhook_queue_worker"] = start_worker(process_event)
+    app.extensions["webhook_queue_status"] = queue_status_counts

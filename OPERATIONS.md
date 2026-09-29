@@ -36,6 +36,7 @@ GoogleサービスアカウントJSONをアップロードし、スプレッド�
 - Start Command: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 --max-requests 200 --max-requests-jitter 50`
 - Health Check Path: `/healthz`
 - Settings保存先: `/var/data/settings.json`
+- Webhook永続キュー: `/var/data/webhook_queue.sqlite3`
 
 Render の公開URLが `https://medsafety-link.onrender.com` の場合、LINE Developers の Webhook URL は次です。
 

@@ -91,6 +91,11 @@
           {% endif %}
           <div class="timeline-status">
             {% if item.direction == "受信" %}
+              {% if item.received_timestamp %}
+                <span class="muted">システム受信 {{ item.received_timestamp }}</span>
+                {% if item.delay_label %}<span class="{% if item.is_redelivery %}error{% else %}muted{% endif %}">遅延 {{ item.delay_label }}</span>{% endif %}
+                {% if item.is_redelivery %}<span class="error">LINE再配信</span>{% endif %}
+              {% endif %}
               {% if item.handled %}<span class="success">対応済</span>{% else %}<span class="error">未対応</span>{% endif %}
             {% else %}
               {% if item.ok %}<span class="success">送信成功</span>{% else %}<span class="error">送信失敗</span>{% endif %}

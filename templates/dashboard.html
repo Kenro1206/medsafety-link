@@ -60,7 +60,10 @@
         <td>{{ r.name }}</td>
         <td>{{ r.prefecture }}</td>
         <td>{{ r.phone }}</td>
-        <td>{{ r.timestamp }}</td>
+        <td>
+          {{ r.timestamp }}
+          {% if r.delay_label and ((r.delay_seconds|int) >= 60 or r.is_redelivery) %}<br><span class="error">受信遅延 {{ r.delay_label }}{% if r.is_redelivery %}・再配信{% endif %}</span>{% endif %}
+        </td>
         <td>
           <strong>{{ r.label }}</strong><br><span class="muted">{{ r.code }}</span>
           {% if r.media_url %}

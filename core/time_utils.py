@@ -20,6 +20,41 @@ def now_jst_iso():
     return datetime.now(JST).isoformat(timespec="seconds")
 
 
+def line_event_timestamp_to_jst_iso(value):
+    try:
+        milliseconds = int(value)
+    except (TypeError, ValueError):
+        return now_jst_iso()
+    return datetime.fromtimestamp(milliseconds / 1000, tz=timezone.utc).astimezone(JST).isoformat(timespec="seconds")
+
+
+def timestamp_delay_seconds(event_timestamp, received_timestamp):
+    try:
+        event_time = datetime.fromisoformat(str(event_timestamp).replace("Z", "+00:00"))
+        received_time = datetime.fromisoformat(str(received_timestamp).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return 0
+    if event_time.tzinfo is None:
+        event_time = event_time.replace(tzinfo=JST)
+    if received_time.tzinfo is None:
+        received_time = received_time.replace(tzinfo=JST)
+    return max(0, int((received_time - event_time).total_seconds()))
+
+
+def format_delay_seconds(value):
+    try:
+        seconds = max(0, int(float(value)))
+    except (TypeError, ValueError):
+        return ""
+    if seconds < 60:
+        return f"{seconds}秒"
+    hours, remainder = divmod(seconds, 3600)
+    minutes = remainder // 60
+    if hours:
+        return f"{hours}時間{minutes}分"
+    return f"{minutes}分"
+
+
 def format_jst_timestamp(value):
     text = str(value or "").strip()
     if not text or text == "未回答":

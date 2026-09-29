@@ -13,14 +13,14 @@ SCOPES = [
 ]
 PATIENTS_RANGE = "patients!A:G"
 PENDING_RANGE = "pending_users!A:D"
-RESPONSES_RANGE = "responses!A:N"
+RESPONSES_RANGE = "responses!A:R"
 SENT_MESSAGES_RANGE = "sent_messages!A:H"
 SYSTEM_MODE_RANGE = "system_mode!A:A"
 
 REQUIRED_SHEETS = {
     "patients": [["patient_id", "name", "phone", "line_user_id", "patient_type", "notes", "prefecture"]],
     "pending_users": [["timestamp", "line_user_id", "patient_name", "display_text"]],
-    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled", "media_id", "media_url", "severity", "severity_score", "latitude", "longitude"]],
+    "responses": [["timestamp", "patient_id", "name", "line_user_id", "event_type", "code", "label", "handled", "media_id", "media_url", "severity", "severity_score", "latitude", "longitude", "received_timestamp", "webhook_event_id", "is_redelivery", "delay_seconds"]],
     "sent_messages": [["timestamp", "patient_id", "name", "line_user_id", "send_type", "message", "ok", "detail"]],
     "system_mode": [["mode"], ["NORMAL"]],
 }
@@ -420,11 +420,31 @@ def get_response_severity(code):
     return "中", 2
 
 
-def append_response(patient, user_id, event_type, code, label, media_id="", media_url="", latitude="", longitude=""):
+def append_response(
+    patient,
+    user_id,
+    event_type,
+    code,
+    label,
+    media_id="",
+    media_url="",
+    latitude="",
+    longitude="",
+    event_timestamp="",
+    received_timestamp="",
+    webhook_event_id="",
+    is_redelivery=False,
+    delay_seconds=0,
+):
     severity, severity_score = get_response_severity(code)
-    update_sheet("responses!A1:N1", REQUIRED_SHEETS["responses"])
+    update_sheet("responses!A1:R1", REQUIRED_SHEETS["responses"])
+    if webhook_event_id:
+        existing_rows = read_sheet(RESPONSES_RANGE)
+        existing = rows_to_dicts(existing_rows)
+        if any(row.get("webhook_event_id") == webhook_event_id for row in existing):
+            return False
     append_sheet(RESPONSES_RANGE, [
-        now_jst_iso(),
+        event_timestamp or now_jst_iso(),
         patient.get("patient_id", ""),
         patient.get("name", ""),
         user_id,
@@ -438,7 +458,12 @@ def append_response(patient, user_id, event_type, code, label, media_id="", medi
         severity_score,
         latitude,
         longitude,
+        received_timestamp or now_jst_iso(),
+        webhook_event_id,
+        "TRUE" if is_redelivery else "",
+        delay_seconds,
     ])
+    return True
 
 
 def append_sent_message(patient, send_type, message, ok, detail):
@@ -509,7 +534,8 @@ def set_latest_response_handled(patient_id, handled):
     target[handled_index] = "TRUE" if handled else ""
     while len(target) < response_col_count:
         target.append("")
-    update_sheet(f"responses!A{best_row_index}:N{best_row_index}", [target[:response_col_count]])
+    end_column = _column_letter(response_col_count)
+    update_sheet(f"responses!A{best_row_index}:{end_column}{best_row_index}", [target[:response_col_count]])
     return True
 
 
@@ -540,7 +566,8 @@ def set_response_handled(timestamp, patient_id, handled, line_user_id=""):
             row[handled_index] = "TRUE" if handled else ""
             while len(row) < response_col_count:
                 row.append("")
-            update_sheet(f"responses!A{row_index}:N{row_index}", [row[:response_col_count]])
+            end_column = _column_letter(response_col_count)
+            update_sheet(f"responses!A{row_index}:{end_column}{row_index}", [row[:response_col_count]])
             return True
 
     return False

@@ -11,6 +11,8 @@ services:
         generateValue: true
       - key: SETTINGS_PATH
         value: /var/data/settings.json
+      - key: WEBHOOK_QUEUE_PATH
+        value: /var/data/webhook_queue.sqlite3
       - key: GOOGLE_SERVICE_JSON
         sync: false
       - key: PYTHONUNBUFFERED

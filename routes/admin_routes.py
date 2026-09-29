@@ -7,7 +7,7 @@ from core.auth import require_login, require_system_admin
 from core.config_manager import SETTINGS_PATH, get_message_presets, get_settings_storage_status, load_settings, save_settings
 from core.institution_context import get_current_institution_id, get_current_institution
 from core.passwords import set_institution_password, verify_institution_password
-from core.time_utils import format_jst_timestamp
+from core.time_utils import format_delay_seconds, format_jst_timestamp
 from core.utils import help_link
 from services.line_service import get_bot_info, get_message_content, push_safety_check, push_text
 from services.sheets_service import (
@@ -32,6 +32,7 @@ from services.sheets_service import (
     set_system_mode,
     validate_service_account_json_file,
 )
+from services.webhook_queue import queue_status_counts
 
 
 def register_admin_routes(app):
@@ -157,6 +158,9 @@ def register_admin_routes(app):
             item = dict(row)
             item["raw_timestamp"] = item.get("timestamp", "")
             item["timestamp"] = format_jst_timestamp(item.get("timestamp", ""))
+            item["received_timestamp"] = format_jst_timestamp(item.get("received_timestamp", ""))
+            item["delay_label"] = format_delay_seconds(item.get("delay_seconds", ""))
+            item["is_redelivery"] = str(item.get("is_redelivery", "")).upper() in ["TRUE", "1", "YES"]
             formatted.append(item)
         return formatted
 
@@ -197,6 +201,9 @@ def register_admin_routes(app):
             items.append({
                 "timestamp_raw": response.get("timestamp", ""),
                 "timestamp": format_jst_timestamp(response.get("timestamp", "")),
+                "received_timestamp": format_jst_timestamp(response.get("received_timestamp", "")),
+                "delay_label": format_delay_seconds(response.get("delay_seconds", "")),
+                "is_redelivery": str(response.get("is_redelivery", "")).upper() in ["TRUE", "1", "YES"],
                 "direction": "受信",
                 "direction_class": "incoming",
                 "kind": response.get("event_type", ""),
@@ -218,6 +225,9 @@ def register_admin_routes(app):
             items.append({
                 "timestamp_raw": message.get("timestamp", ""),
                 "timestamp": format_jst_timestamp(message.get("timestamp", "")),
+                "received_timestamp": "",
+                "delay_label": "",
+                "is_redelivery": False,
                 "direction": "送信",
                 "direction_class": "outgoing",
                 "kind": message.get("send_type", ""),
@@ -419,6 +429,10 @@ def register_admin_routes(app):
                 "prefecture": patient.get("prefecture", ""),
                 "timestamp": format_jst_timestamp(raw_timestamp or "未回答"),
                 "raw_timestamp": raw_timestamp,
+                "received_timestamp": format_jst_timestamp(response.get("received_timestamp", "")),
+                "delay_seconds": response.get("delay_seconds", ""),
+                "delay_label": format_delay_seconds(response.get("delay_seconds", "")),
+                "is_redelivery": str(response.get("is_redelivery", "")).upper() in ["TRUE", "1", "YES"],
                 "code": code or "NO_RESPONSE",
                 "label": response.get("label", "未回答"),
                 "media_id": response.get("media_id", ""),
@@ -872,7 +886,17 @@ def register_admin_routes(app):
 
         settings = load_settings()
         recent = settings.get("webhook_status", {}).get("recent", [])
-        lines = ["Webhook受信診断", f"記録件数: {len(recent)}"]
+        queue_counts = safe_call(queue_status_counts, {})
+        lines = [
+            "Webhook受信診断",
+            f"記録件数: {len(recent)}",
+            (
+                "永続キュー: "
+                f"処理待ち {queue_counts.get('pending', 0)} / "
+                f"処理中 {queue_counts.get('processing', 0)} / "
+                f"処理済み {queue_counts.get('done', 0)}"
+            ),
+        ]
         if not recent:
             lines.append("まだWebhook受信記録がありません。LINEから公式アカウントへ「テスト」と送ってから再確認してください。")
         for idx, row in enumerate(recent[:10], start=1):
@@ -880,6 +904,11 @@ def register_admin_routes(app):
                 "",
                 f"#{idx}",
                 f"時刻: {row.get('timestamp', '')}",
+                f"LINEイベント時刻: {row.get('event_timestamp', '') or '記録なし'}",
+                f"システム受信時刻: {row.get('received_timestamp', '') or row.get('timestamp', '')}",
+                f"受信遅延: {format_delay_seconds(row.get('delay_seconds', '')) or '記録なし'}",
+                f"再配信: {'はい' if row.get('is_redelivery') else 'いいえ'}",
+                f"WebhookイベントID: {mask_identifier(row.get('webhook_event_id', ''), visible=6) or '記録なし'}",
                 f"destination: {row.get('destination', '')}",
                 f"イベント: {row.get('event_type', '')}/{row.get('message_type', '')}",
                 f"LINE user_id: {mask_identifier(row.get('line_user_id', ''))}",
