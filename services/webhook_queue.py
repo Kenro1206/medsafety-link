@@ -30,10 +30,9 @@ def _connect():
     directory = os.path.dirname(path)
     if directory:
         os.makedirs(directory, exist_ok=True)
-    connection = sqlite3.connect(path, timeout=10)
+    connection = sqlite3.connect(path, timeout=1)
     connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA journal_mode=WAL")
-    connection.execute("PRAGMA busy_timeout=10000")
+    connection.execute("PRAGMA busy_timeout=1000")
     return connection
 
 
@@ -58,6 +57,7 @@ def initialize_queue():
         if path in _initialized_paths:
             return
         with _database() as connection:
+            connection.execute("PRAGMA journal_mode=WAL")
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS webhook_events (
