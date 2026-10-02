@@ -46,6 +46,10 @@ https://medsafety-link.onrender.com/callback
 
 `GOOGLE_SERVICE_JSON` は Render の Environment で Secret として設定できます。画面からJSONをアップロードして使う場合は、永続ディスクに保存される `settings.json` と組み合わせて運用します。
 
+Webhookは受信後すぐにSQLiteの永続キューへ保存し、LINEへは先に成功応答を返します。Google Sheetsへの記録や患者さんへの返信はバックグラウンドで実行します。`WEBHOOK_QUEUE_PATH` は、Renderの永続ディスク上の `/var/data/webhook_queue.sqlite3` から変更しないでください。
+
+回答履歴には、LINEイベントの回答時刻、システム受信時刻、WebhookイベントID、再送の有無、遅延秒数を記録します。Googleシート初期化により、`responses` タブに必要な列が追加されます。
+
 ## 6. 本番起動
 ローカル確認:
 
@@ -74,3 +78,5 @@ gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 --ma
 - 管理者LINE IDを設定済み
 - LINE Developers の Webhook URL が公開URL + `/callback`
 - LINE Developers の Webhook利用がON
+- `WEBHOOK_QUEUE_PATH=/var/data/webhook_queue.sqlite3` を設定済み
+- 回答履歴で回答時刻、受信時刻、遅延を確認できる
